@@ -9,8 +9,27 @@ __maintainer__ = "Timo Schwarzer"
 __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
-from bionic_message_tools.bionic_message_base import BionicMessageBase, BionicActionMessage
-from phand_python_libs.phand_messages import VALVE_ACTION_IDS, BIONIC_MSG_IDS
+from enum import IntEnum
+
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
+
+class VALVE_ACTION_IDS(IntEnum):
+    """
+    Action IDs for the valve terminal
+    """
+
+    UNDEFINED = 0x00
+
+    SET_VALVES = 0x01
+    SET_PRESSURES = 0x02
+    SET_POSITIONS = 0x03
+
+    SWITCH_CONTROL_ACTION = 0x04
+    
+    ENABLE_VALVE_CTRL = 0x01
+    ENABLE_PRESSURE_CTRL = 0x02
+    ENABLE_POS_CTRL = 0x03
 
 class BionicValveMessage(BionicMessageBase):
         
@@ -19,7 +38,7 @@ class BionicValveMessage(BionicMessageBase):
     valve_setpoints = [0.0] * 24
     ctrl_mode = VALVE_ACTION_IDS.UNDEFINED
 
-    def __init__(self, msg_id):
+    def __init__(self, msg_id = BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID):
 
         super(BionicValveMessage, self).__init__(msg_id)
 
@@ -50,7 +69,7 @@ class BionicSetValvesActionMessage(BionicActionMessage):
         action_values[0:len(supply_valve_setpoints)] = supply_valve_setpoints
         action_values[12: 12 + len(exhaust_valve_setpoints)] = exhaust_valve_setpoints
         super(BionicSetValvesActionMessage, self).__init__(action_id=VALVE_ACTION_IDS.SET_VALVES,
-                                                           sensor_id=BIONIC_MSG_IDS.VALVE_MODULE,
+                                                           sensor_id=BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,
                                                            action_values=action_values)
 
     @property
@@ -60,4 +79,39 @@ class BionicSetValvesActionMessage(BionicActionMessage):
         self.action_values[12:12 + len(self.exhaust_valve_setpoints)] = self.exhaust_valve_setpoints
         self.create_message_float()
         return self.msg
+
+class BionicSetControlModeActionMessage(BionicActionMessage):
+
+    def __init__(self, ctrl_mode):
         
+        self.ctrl_mode = ctrl_mode
+        action_values = []
+        action_values.append(ctrl_mode)
+        super(BionicSetControlModeActionMessage, self).__init__(action_id=VALVE_ACTION_IDS.SWITCH_CONTROL_ACTION,
+                                                           sensor_id=BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,
+                                                           action_values=action_values)
+
+    @property
+    def data(self):
+        action_values = []
+        action_values.append(self.ctrl_mode)
+        self.create_message_char()
+        return self.msg
+
+class BionicSetPressureActionMessage(BionicActionMessage):
+
+    def __init__(self, pressure_values):
+        
+        self.pressure_values = pressure_values
+        action_values = [100000.0] * 12
+        action_values = self.pressure_values
+        super(BionicSetPressureActionMessage, self).__init__(action_id=VALVE_ACTION_IDS.SET_PRESSURES,
+                                                           sensor_id=BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,
+                                                           action_values=action_values)
+
+    @property
+    def data(self):
+        self.action_values = [100000.0] * 12
+        self.action_values = self.pressure_values
+        self.create_message_float()
+        return self.msg

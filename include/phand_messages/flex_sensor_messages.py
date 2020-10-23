@@ -9,7 +9,17 @@ __maintainer__ = "Timo Schwarzer"
 __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
-from bionic_message_tools.bionic_message_base import BionicMessageBase, BionicActionMessage
+from enum import IntEnum
+
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
+
+class FLEXSENSOR_ACTION_IDS(IntEnum):
+    """
+    Action ID for the Felxsensor
+    """
+
+    SET_VALUES=0x00
 
 class BionicFlexSensorMessage(BionicMessageBase):
     """
@@ -34,7 +44,8 @@ class BionicFlexSensorMessage(BionicMessageBase):
                 "drvs_thumb"
                 ]
 
-    def __init__(self, msg_id):
+    def __init__(self, msg_id = BIONIC_MSG_IDS.FLEX_SENSOR_MSG_ID):
+        
         super(BionicFlexSensorMessage,self).__init__(msg_id)
 
     def process_msg(self, data, device_id):
@@ -74,7 +85,7 @@ class BionicSetFlexsensorActionMessage(BionicActionMessage):
         self.action_values = action_values
 
         super(BionicSetFlexsensorActionMessage, self).__init__(action_id=FLEXSENSOR_ACTION_IDS.SET_VALUES,
-                                                                 sensor_id=BIONIC_MSG_IDS.FLEX_BOARD,
+                                                                 sensor_id=BIONIC_MSG_IDS.FLEX_SENSOR_MSG_ID,
                                                                  action_values=action_values)
 
     def set_data(self, led_green, led_blue, led_red, override_leds, series_resistance_top, series_resistance_bottom):

@@ -11,14 +11,20 @@ __status__ = "Experimental"
 
 #system imports
 import logging
-import time
 import socket
-import netifaces
 import threading
+import time
+import netifaces
 from transitions import Machine
 
-# bionic imports
+from bionic_udp_client.bionic_udp_client import BionicUdpClient
 from dhcp_server.dhcp import DHCPServer, DHCPServerConfiguration
+from phand_messages.cylinder_messages import BionicCylinderSensorMessage
+from phand_messages.flex_sensor_messages import BionicFlexSensorMessage
+from phand_messages.imu_messages import BionicIMUDataMessage
+from phand_messages.loomia_messages import BionicLoomiaMessage
+from phand_messages.phand_message_constants import ERROR_CODES
+from phand_messages.valve_terminal_messages import BionicValveMessage
 
 class PhandUdpDriver:
     """ 
@@ -36,11 +42,11 @@ class PhandUdpDriver:
     _connected_hands = []
     
     messages = {
-        "BionicValveMessage": BionicValveMessage(BIONIC_MSG_IDS.VALVE_MODULE),        
-        "BionicIMUDataMessage": BionicIMUDataMessage(BIONIC_MSG_IDS.IMU_MAINBOARD),
-        "BionicFlexMessage": BionicFlexSensorMessage(BIONIC_MSG_IDS.FLEX_BOARD),
-        "BionicLoomiaMessage": BionicLoomiaMessage(BIONIC_MSG_IDS.LOOMIA_BOARD),
-        "BionicCylinderSensorMessage": BionicCylinderSensorMessage(BIONIC_MSG_IDS.CYLINDER_SENSOR)
+        "BionicValveMessage": BionicValveMessage(),        
+        "BionicIMUDataMessage": BionicIMUDataMessage(),
+        "BionicFlexMessage": BionicFlexSensorMessage(),
+        "BionicLoomiaMessage": BionicLoomiaMessage(),
+        "BionicCylinderSensorMessage": BionicCylinderSensorMessage()
     }
     
     def __init__(self, start_dhcp = False):
@@ -196,7 +202,7 @@ class PhandUdpDriver:
             self.udp_client.stop()
             del self.udp_client
         except Exception as e:
-            logging.error("phand_driver - on_connection_lost - (Exception): ", str(e))        
+            logging.error(f"phand_driver - on_connection_lost - (Exception): {str(e)}")        
 
     def waiting_for_client(self):
         """
@@ -275,7 +281,7 @@ class PhandUdpDriver:
                 iface_list = iface_list[1:-1].split(',')
 
                 sub_string = [""]*4
-                for idx, string in enumerate(iface_list):
+                for _, string in enumerate(iface_list):
 
                     if "addr" in string:
                         sub_string = string.split(":")[1].replace('\'',"").split(".")
@@ -307,7 +313,7 @@ class PhandUdpDriver:
         self.set_own_ip(self.pHandIp)
         
         if not self.ownIp:
-            self.sm_error(ErrorCodes.NOT_SAME_SUBNET)
+            self.sm_error(ERROR_CODES.NOT_SAME_SUBNET)
 
         # Setup the udp client
         # Schauen ob es eine IP ähnlich der Hand auf dem Computer gibt -> Diese nehmen
@@ -359,6 +365,6 @@ class PhandUdpDriver:
         Error handler for all possible errors
         """
         
-        if arguments == ErrorCodes.NO_CALLBACK:
+        if arguments == ERROR_CODES.NO_CALLBACK:
             logging.error("NO CALLBACK REGISTERED")
             # TODO: Close everything, go to initial and waiting

@@ -6,13 +6,13 @@ import logging
 import sys
 
 # Bionic imports
-from phand_core_lib.phand import PHand, PHandState
-from bionic_messages.bionic_messages import BIONIC_MSG_IDS
+from phand.phand import PHand, PHAND_STATE
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
 
 class LoomiaComTest():
 
     loomia_msg = {}
-    required_msgs_ids = [ BIONIC_MSG_IDS.LOOMIA_BOARD ]
+    required_msgs_ids = [ BIONIC_MSG_IDS.LOOMIA_MSG_ID ]
     _shutdown = False
 
     adc_reference_voltage = 2.2
@@ -30,7 +30,7 @@ class LoomiaComTest():
         self.phand.set_required_msg_ids(self.required_msgs_ids)  
 
         try:
-            while self.phand.com_state != PHandState.ONLINE:
+            while self.phand.com_state != PHAND_STATE.ONLINE:
                 time.sleep(1)
 
             while not self._shutdown:

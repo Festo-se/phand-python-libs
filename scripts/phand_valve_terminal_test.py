@@ -10,8 +10,9 @@ import numpy as np
 import sys
 
 # bionic imports
-from phand_core_lib.phand import PHand, PhandControlModes
-from bionic_messages.bionic_messages import BIONIC_MSG_IDS
+from phand.phand import PHand
+from phand.phand_constants import PHAND_CONTROL_MODES
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
 
 class ValveTerminalTest():
 
@@ -27,7 +28,7 @@ class ValveTerminalTest():
         self.exhaust_valve_setpoints = [0] * 12
 
         self.receiving_data = False
-        self.required_msgs_ids = [ BIONIC_MSG_IDS.VALVE_MODULE ]
+        self.required_msgs_ids = [ BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID ]
 
         self.setup_connection()
         self.setup_plot()
@@ -159,8 +160,8 @@ class ValveTerminalTest():
         Ramps up and down a specific valve
         """
 
-        if self.phand.ctrl_mode != PhandControlModes.VALVE_CTRL:
-            self.phand.set_ctrl_mode(PhandControlModes.VALVE_CTRL)    
+        if self.phand.ctrl_mode != PHAND_CONTROL_MODES.VALVE_CTRL:
+            self.phand.set_ctrl_mode(PHAND_CONTROL_MODES.VALVE_CTRL)    
 
         if self.active_valve == -1:
             self.ax1ydata.append(0)       

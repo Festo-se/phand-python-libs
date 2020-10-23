@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-from phand_core_lib.phand import PHand, PHandState
-from bionic_messages.bionic_messages import BIONIC_MSG_IDS
+# system imports
 import time
+
+#bionic imports
+from phand.phand import PHand, PHAND_STATE
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
 
 current_time = int(round(time.time() * 1000))
 phand = PHand()
@@ -58,11 +61,11 @@ def new_data_available_cb():
         cylinder_found = True
         cylinder_changed = True
 
-required_msgs_ids = [BIONIC_MSG_IDS.VALVE_MODULE,                         
-                     BIONIC_MSG_IDS.IMU_MAINBOARD,
-                     BIONIC_MSG_IDS.LOOMIA_BOARD,
-                     BIONIC_MSG_IDS.FLEX_BOARD,
-                     BIONIC_MSG_IDS.CYLINDER_SENSOR
+required_msgs_ids = [BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,                         
+                     BIONIC_MSG_IDS.IMU_MAINBOARD_MSG_ID,
+                     BIONIC_MSG_IDS.LOOMIA_MSG_ID,
+                     BIONIC_MSG_IDS.FLEX_SENSOR_MSG_ID,
+                     BIONIC_MSG_IDS.CYLINDER_SENSOR_MSG_ID
                     ]
                     
 phand.register_new_data_available_cb(new_data_available_cb)
@@ -70,7 +73,7 @@ phand.set_required_msg_ids(required_msgs_ids)
 
 try:
 
-    while phand.com_state != PHandState.ONLINE:
+    while phand.com_state != PHAND_STATE.ONLINE:
         time.sleep(1)
 
     print(f"------------------------------------")

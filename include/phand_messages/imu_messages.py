@@ -10,8 +10,18 @@ __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
 import struct
+from enum import IntEnum
 
-from bionic_message_tools.bionic_message_base import BionicMessageBase
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
+
+class IMU_ACTION_IDS(IntEnum):
+    """
+    Possible actions for the onboard imu
+    """
+
+    GET_IMU_OFFSETS = 0x01
+    SET_IMU_OFFSETS = 0x02
 
 class BionicIMUDataMessage(BionicMessageBase):
     acc_x = 0
@@ -32,7 +42,8 @@ class BionicIMUDataMessage(BionicMessageBase):
     acc_calib_stat = 0
     mag_calib_stat = 0
 
-    def __init__(self, msg_id):               
+    def __init__(self, msg_id = BIONIC_MSG_IDS.IMU_MAINBOARD_MSG_ID):               
+
         super(BionicIMUDataMessage, self).__init__(msg_id)
 
     def uint162quat(self, uint16):
@@ -77,7 +88,7 @@ class BionicIMUDataMessage(BionicMessageBase):
         self.msg.append(0xFF)
         # Payload
         # Valve Terminal ID
-        self.msg.append(BIONIC_MSG_IDS.IMU_MAINBOARD)
+        self.msg.append(BIONIC_MSG_IDS.IMU_MAINBOARD_MSG_ID)
         # Sub Payload length
         self.msg.append(30)
         # Payload values
@@ -134,7 +145,8 @@ class BionicIMUOffsetsMessage(BionicMessageBase):
     mag_offset_z = 0
     mag_offset_r = 0
 
-    def __init__(self, msg_id):
+    def __init__(self, msg_id = BIONIC_MSG_IDS.IMU_MAINBOARD_OFFSETS_MSG_ID):
+
         super(BionicIMUOffsetsMessage, self).__init__(msg_id)
 
     def get_unique_name(self):
@@ -174,7 +186,7 @@ class BionicIMUOffsetsMessage(BionicMessageBase):
         self.msg.append(0xFF)
         # Payload
         # Valve Terminal ID
-        self.msg.append(BIONIC_MSG_IDS.IMU_MAINBOARD_OFFSETS)
+        self.msg.append(BIONIC_MSG_IDS.IMU_MAINBOARD_OFFSETS_MSG_ID)
         # Sub Payload length
         self.msg.append(30)
         # Payload values

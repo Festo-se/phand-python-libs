@@ -10,215 +10,32 @@ __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
 # System imports
-from enum import IntEnum
 from typing import List
 import functools
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
 import os
 import numpy as np
-import math as m
 from timeit import default_timer as timer
+import logging
+import threading
+import time
 
-# Festo imports
-from phand_core_lib.phand_driver import *
-from bionic_messages.bionic_messages import *
+# Bionic imports
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
+from phand_driver.phand_driver import PhandUdpDriver
+from phand_messages.valve_terminal_messages import BionicSetValvesActionMessage
+from phand_messages.valve_terminal_messages import BionicSetControlModeActionMessage
+from phand_messages.valve_terminal_messages import BionicSetPressureActionMessage
+from phand_messages.loomia_messages import BionicSetLoomiaValuesActionMessage
+from phand_messages.flex_sensor_messages import BionicSetFlexsensorActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
+from phand_messages.valve_terminal_messages import VALVE_ACTION_IDS
+from phand.phand_constants import PHAND_FINGER_INDEX, PHAND_STATE, PHAND_GRIP_MODES, PHAND_CONTROL_MODES
+from phand.phand_joint_calculations import JointCalculations
+from phand_calibration.phand_sensor_calibration import PhandSensorCalibrationValue
 
 DEFAULT_MAX_FINGER_PRESSURE = 600000.0
-
-class PHandFingerIndex(IntEnum):
-
-    ThumbSide = 0
-    ThumbLower = 1
-    ThumbUpper = 3
-    IndexSide = 9
-    IndexLower = 6
-    IndexUpper = 4
-    MidRingLower = 8
-    MidRingUpper = 10
-    Pinky = 11
-
-    CounterPressure = 2
-
-    WristLeft = 5
-    WristRight = 7
-
-class PHandState(IntEnum):
-
-    OFFLINE = 1
-    ONLINE = 2
-    ERROR = 3
-
-class PhandControlModes(IntEnum):
-
-    VALVE_CTRL = 1
-    PRESSURE_CTRL = 2
-    POSITION_CTRL = 3
-
-class PhandGripModes(IntEnum):
-
-    CONCENTRIC = 1
-    PARALLEL = 2
-    CLAW = 3
-
-class PhandSensorCalibrationValue:
-
-    def __init__(self, value_id, value):
-        self.value_id = value_id
-        self.value = value
-
-class JointCalculations:
-
-    def __init__(self):
-        self.l1 = 27.63e-3
-        self.l2 = 26.63e-3
-        self.l3 = 158e-3
-        self.l4 = 27.02e-3
-        self.l5 = 26.95e-3
-
-        self.l9     = 76.41e-3
-        self.l10    = 18.81e-3
-        self.l11_0  = self.l9-self.l10
-
-        self.theta3 = np.deg2rad(18.6)
-
-    # Matlab theta 4
-    def calculate_wristBase_cylinderR(self, theta1, theta2):
-
-        return -m.atan2(- m.cos(self.theta3)*(self.l4 - self.l1*m.cos(theta1)) - m.sin(self.theta3)*(self.l2*m.cos(theta2) - self.l5
-               + self.l1*m.sin(theta1)*m.sin(theta2)),
-                        m.sqrt(
-                            m.pow(abs(self.l3 - self.l2*m.sin(theta2) + self.l1*m.cos(theta2)*m.sin(theta1)),2)
-                         + m.pow(abs(self.l2*m.cos(theta2) - self.l5 + self.l1*m.sin(theta1)*m.sin(theta2)),2)
-                            + m.pow(abs(self.l4 - self.l1*m.cos(theta1)),2)
-                        ))
-
-    # Matlab theta5
-    def calculate_horizontal_R_vertical_R(self,theta1, theta2):
-
-        return m.atan2(
-            m.cos(self.theta3)*(self.l2*m.cos(theta2) - self.l5 +
-            self.l1*m.sin(theta1)*m.sin(theta2)) -
-            m.sin(self.theta3)*(self.l4 - self.l1*m.cos(theta1)),
-            self.calculate_rigthcylinder_rod(theta1,theta2) # L6
-        )
-
-    # Matlab theta 6
-    def calculate_wristBase_cylinderL(self, theta1, theta2):
-
-        return -m.atan2(
-            -m.cos(-self.theta3)*(self.l4 - self.l1*m.cos(theta1))
-            -m.sin(-self.theta3)*(self.l2*m.cos(theta2)
-            -self.l5 + self.l1*m.sin(theta1)*m.sin(theta2)),
-            self.calculate_leftcylinder_rod(theta1, theta2))
-
-
-    # Matlab theta7
-    def calculate_horizontal_L_vertical_L(self,theta1, theta2):
-
-        return m.atan2(
-            m.cos(-self.theta3)*(self.l2*m.cos(theta2)
-            - self.l5 + self.l1*m.sin(theta1)*m.sin(theta2))
-            - m.sin(-self.theta3)*(self.l4 - self.l1*m.cos(theta1)),
-            self.calculate_leftcylinder_rod(theta1, theta2))
-
-
-    def calculate_l0(self):
-        return self.calculate_leftcylinder_rod(0,0)
-
-    # Matlab L6
-    def calculate_rigthcylinder_rod(self,theta1, theta2):
-
-        return m.sqrt(
-            m.pow(abs(self.l4 - self.l1*m.cos(theta1)), 2) +
-            m.pow(abs(self.l3 + self.l2*m.sin(theta2) + self.l1*m.cos(theta2)*m.sin(theta1)), 2) +
-            m.pow(abs(self.l5 - self.l2*m.cos(theta2) + self.l1*m.sin(theta1)*m.sin(theta2)), 2)
-        )
-
-    # Matlab L7
-    def calculate_leftcylinder_rod(self, theta1, theta2):
-
-        return m.sqrt(
-            m.pow(abs(self.l2*m.cos(theta2) - self.l5 + self.l1*m.sin(theta1)*m.sin(theta2)), 2) +
-            m.pow(abs(self.l4 - self.l1*m.cos(theta1)), 2) +
-            m.pow(abs(self.l3 - self.l2*m.sin(theta2) + self.l1*m.cos(theta2)*m.sin(theta1)), 2)
-                  )
-
-    def calculate_index_angles(self, cylinder_rod ):
-
-
-        self.l11 = self.l11_0+cylinder_rod
-
-        ph1 =  2*m.atan(((self.l9*m.pow((self.l9 + self.l10 - self.l11),2)*m.sqrt(((self.l9 - self.l10 + self.l11)*(self.l10 - self.l9 + self.l11))/( m.pow((self.l9 + self.l10 - self.l11),3)*(self.l9 + self.l10 + self.l11))))/(self.l9 - self.l10 + self.l11) - (self.l10*m.pow((self.l9 + self.l10 - self.l11),2)*m.sqrt(((self.l9 - self.l10 + self.l11)*(self.l10 - self.l9 + self.l11))/(m.pow((self.l9 + self.l10 - self.l11),3)*(self.l9 + self.l10 + self.l11))))/(self.l9 - self.l10 + self.l11) + (self.l11*m.pow((self.l9 + self.l10 - self.l11),2)*m.sqrt(((self.l9 - self.l10 + self.l11)*(self.l10 - self.l9 + self.l11))/(m.pow((self.l9 + self.l10 - self.l11),3)*(self.l9 + self.l10 + self.l11))))/(self.l9 - self.l10 + self.l11))/(self.l9 + self.l10 - self.l11))
-
-        ph2 = 2*m.atan(m.pow((self.l9 + self.l10 - self.l11),2)*m.sqrt((((self.l9 - self.l10 + self.l11)*(self.l10 - self.l9 + self.l11))/(m.pow( (self.l9 + self.l10 - self.l11), 3)*(self.l9 + self.l10 + self.l11))))/(self.l9 - self.l10 + self.l11))
-
-        #print([cylinder_rod, ph1, ph1])
-
-        return [ph1, ph2]
-
-    def calculate_theta1_theta2(self, l1_in, l2_in):
-
-        theta1 = 0
-        theta2 = 0
-        l0 = self.calculate_l0()
-        # for t1 in np.arange(np.deg2rad(-30.0), np.deg2rad(30.0),  0.05,):
-        t1 = np.deg2rad(-40.0)
-        t2 = np.deg2rad(-30.0)
-        counter = 0
-        big_inc = 0.15
-        small_inc = 0.010
-        old_error = [100,100]
-        while t1 < np.deg2rad(40.0):
-
-            # print([t1, t2])
-            # for t2 in np.arange(np.deg2rad(-30.0), np.deg2rad(30.0),  0.05):
-            l1 = 0
-            l2 = 0
-            t2 = np.deg2rad(-30.0)
-
-
-
-            while t2 < np.deg2rad(30.0):
-                counter += 1
-                l1 = self.calculate_leftcylinder_rod(theta1=t1, theta2=t2) - l0
-                l2 = l0 - self.calculate_rigthcylinder_rod(theta1=t1, theta2=t2)
-                # print([abs(l1 - l1_in), abs(l2 - l2_in)])
-                error_l1 = abs(l1 - l1_in)
-                error_l2 = abs(l2 - l2_in)
-
-                if l1 < l1_in:
-                    break
-                if l2 < l2_in:
-                    break
-
-                old_error[0] = error_l1
-                old_error[1] = error_l2
-
-
-                if error_l2 > 0.007:
-                    t2 += big_inc*1.5
-                elif error_l2 > 0.002:
-                    t2 += small_inc*2
-                else:
-                    t2 += small_inc
-
-                if error_l1 < 0.002 and error_l2 < 0.002:
-                    # logging.debug("Found after: %i iterations"%counter)
-                    # print([abs(l1-l1_in), abs(l2-l2_in)])
-                    return [t1, t2, True]
-
-            if abs(l1 - l1_in) > 0.007:
-                t1 += big_inc
-            elif abs(l1 - l1_in) > 0.002:
-                t1 += small_inc*2
-            else:
-                t1 += small_inc
-
-        # logging.error("Not found %f %f"%(l1_in, l2_in))
-        # print([l1_in, l2_in])
-        return [0,0, False]
-        # raise LookupError("No solution found")
 
 class PHand(PhandUdpDriver):
     """
@@ -229,10 +46,10 @@ class PHand(PhandUdpDriver):
 
     hand_id = 0
     is_calibrated = False
-    com_state = PHandState.OFFLINE
+    com_state = PHAND_STATE.OFFLINE
 
-    ctrl_mode = PhandControlModes.PRESSURE_CTRL
-    grip_mode = PhandGripModes.PARALLEL
+    ctrl_mode = PHAND_CONTROL_MODES.PRESSURE_CTRL
+    grip_mode = PHAND_GRIP_MODES.PARALLEL
 
     status_codes = []
     connected_sensor_names = []
@@ -264,7 +81,7 @@ class PHand(PhandUdpDriver):
 
         self.yaml = YAML()
         self.calibration_data = {}
-        self.config_file_path = os.path.dirname(os.path.abspath(__file__)) + '/configs/hand_calibrations.yaml'
+        self.config_file_path = os.path.dirname(os.path.abspath(__file__)) + '../phand_calibration/configs/hand_calibrations.yaml'
 
         self.jc = JointCalculations()
 
@@ -327,26 +144,26 @@ class PHand(PhandUdpDriver):
         old_hand_state = self.com_state               
 
         if self.state in ['ERROR']:
-            self.com_state = PHandState.ERROR
+            self.com_state = PHAND_STATE.ERROR
             state_code = ["1", "No connection with the hand possible. Do you have a ip in the same subnet as the hand?"]
             self.status_codes.append(state_code)
             return
 
         if self.state not in ['CONNECTED']:
-            self.com_state = PHandState.OFFLINE
+            self.com_state = PHAND_STATE.OFFLINE
             state_code = ["2", "Internal state: " + self.state]
             self.status_codes.append(state_code)
             return
 
         if self.state in ['CONNECTED']:
-            self.com_state = PHandState.ONLINE
+            self.com_state = PHAND_STATE.ONLINE
             state_code = ["3", "Internal state: " + self.state]
             self.status_codes.append(state_code)
             if not self.is_calibrated:
                 self.load_calibration_data()
 
         if not all(elem in self.connected_sensor_ids for elem in self.required_msgs_ids):
-            self.com_state = PHandState.ONLINE
+            self.com_state = PHAND_STATE.ONLINE
             state_code = ["4", "Not all required sensors are available"]
             self.status_codes.append(state_code)
 
@@ -355,7 +172,7 @@ class PHand(PhandUdpDriver):
 
     def save_calibration(self):
 
-        if self.com_state != PHandState.ONLINE:
+        if self.com_state != PHAND_STATE.ONLINE:
             logging.warning("Can't save calibration data if hand if not online.")
             return False
 
@@ -418,7 +235,7 @@ class PHand(PhandUdpDriver):
         If the hand is connected, load the calibration values according to the hand id.
         """
 
-        if self.com_state != PHandState.ONLINE:
+        if self.com_state != PHAND_STATE.ONLINE:
             logging.warning("Can't calibrate hand if not online.")
             return False
 
@@ -432,14 +249,13 @@ class PHand(PhandUdpDriver):
 
     def set_ctrl_mode(self, ctrl_mode):
 
-        if self.com_state != PHandState.ONLINE:
+        if self.com_state != PHAND_STATE.ONLINE:
             return False
 
         self.ctrl_mode = ctrl_mode
 
-        action_values = []
-        action_values.append(self.ctrl_mode)
-        action_message = BionicActionMessage(BIONIC_MSG_IDS.VALVE_MODULE, VALVE_ACTION_IDS.SWITCH_CONTROL_ACTION, action_values)
+        
+        action_message = BionicSetControlModeActionMessage(self.ctrl_mode)
         self.send_data(action_message.data)
 
         return True
@@ -518,41 +334,41 @@ class PHand(PhandUdpDriver):
 
         self.simple_grip_pressure = [100000.0] * 12
 
-        if grip_mode == PhandGripModes.CLAW:
+        if grip_mode == PHAND_GRIP_MODES.CLAW:
                         
-            self.simple_grip_pressure[PHandFingerIndex.ThumbSide] = 100000.0
-            self.simple_grip_pressure[PHandFingerIndex.ThumbLower] = 250000.0
-            self.simple_grip_pressure[PHandFingerIndex.ThumbUpper] = 320000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexSide] = 700000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexLower] = 460000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexUpper] = 460000.0
-            self.simple_grip_pressure[PHandFingerIndex.MidRingLower] = 100000.0
-            self.simple_grip_pressure[PHandFingerIndex.MidRingUpper] = 100000.0
-            self.simple_grip_pressure[PHandFingerIndex.Pinky] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbSide] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbLower] = 250000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbUpper] = 320000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide] = 700000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexLower] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexUpper] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingLower] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingUpper] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Pinky] = 100000.0
         
-        elif grip_mode == PhandGripModes.PARALLEL:
+        elif grip_mode == PHAND_GRIP_MODES.PARALLEL:
                         
-            self.simple_grip_pressure[PHandFingerIndex.ThumbSide] = 100000.0
-            self.simple_grip_pressure[PHandFingerIndex.ThumbLower] = 250000.0
-            self.simple_grip_pressure[PHandFingerIndex.ThumbUpper] = 320000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexSide] = 700000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexLower] = 460000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexUpper] = 460000.0
-            self.simple_grip_pressure[PHandFingerIndex.MidRingLower] = 460000.0
-            self.simple_grip_pressure[PHandFingerIndex.MidRingUpper] = 460000.0
-            self.simple_grip_pressure[PHandFingerIndex.Pinky] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbSide] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbLower] = 250000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbUpper] = 320000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide] = 700000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexLower] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexUpper] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingLower] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingUpper] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Pinky] = 460000.0
 
-        elif grip_mode == PhandGripModes.CONCENTRIC:
+        elif grip_mode == PHAND_GRIP_MODES.CONCENTRIC:
                         
-            self.simple_grip_pressure[PHandFingerIndex.ThumbSide] = 700000.0
-            self.simple_grip_pressure[PHandFingerIndex.ThumbLower] = 600000.0
-            self.simple_grip_pressure[PHandFingerIndex.ThumbUpper] = 600000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexSide] = 100000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexLower] = 600000.0
-            self.simple_grip_pressure[PHandFingerIndex.IndexUpper] = 600000.0
-            self.simple_grip_pressure[PHandFingerIndex.MidRingLower] = 600000.0
-            self.simple_grip_pressure[PHandFingerIndex.MidRingUpper] = 600000.0
-            self.simple_grip_pressure[PHandFingerIndex.Pinky] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbSide] = 700000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbLower] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbUpper] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexLower] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexUpper] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingLower] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingUpper] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Pinky] = 600000.0
             
         else:
             return False
@@ -588,7 +404,7 @@ class PHand(PhandUdpDriver):
         self.simple_grip_valve_exhaust[6] = 0.0
 
         # Move the thumb to the concentric position
-        if self.grip_mode == PhandGripModes.CONCENTRIC:
+        if self.grip_mode == PHAND_GRIP_MODES.CONCENTRIC:
 
             # Thumb rotation (DRVS) supply and exhaust
             self.simple_grip_valve_supply[0] = 1.0
@@ -610,7 +426,7 @@ class PHand(PhandUdpDriver):
             self.simple_grip_valve_supply[11] = 1.0
             self.simple_grip_valve_exhaust[11] = 0.0
             
-        elif self.grip_mode == PhandGripModes.PARALLEL:
+        elif self.grip_mode == PHAND_GRIP_MODES.PARALLEL:
             
             # Thumb rotation (DRVS) supply and exhaust
             self.simple_grip_valve_supply[0] = 0.0
@@ -632,7 +448,7 @@ class PHand(PhandUdpDriver):
             self.simple_grip_valve_supply[11] = 1.0
             self.simple_grip_valve_exhaust[11] = 0.0
 
-        elif self.grip_mode == PhandGripModes.CLAW:
+        elif self.grip_mode == PHAND_GRIP_MODES.CLAW:
 
             # Thumb rotation (DRVS) supply and exhaust
             self.simple_grip_valve_supply[0] = 0.0
@@ -675,9 +491,9 @@ class PHand(PhandUdpDriver):
 
         logging.debug("Opening the hand.")
         
-        if self.ctrl_mode == PhandControlModes.VALVE_CTRL:
+        if self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:
             return self.simple_open_valve(speed, pressures)            
-        elif self.ctrl_mode == PhandControlModes.PRESSURE_CTRL:
+        elif self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
             return self.simple_open_pressure(speed, pressures)
         else:
             return False
@@ -687,7 +503,7 @@ class PHand(PhandUdpDriver):
         Simply open all fingers with valve control
         """
 
-        if self.com_state == PHandState.OFFLINE:
+        if self.com_state == PHAND_STATE.OFFLINE:
             return False
 
         logging.info("Not implemented yet.")
@@ -699,17 +515,17 @@ class PHand(PhandUdpDriver):
         Simply open all fingers for the current grip configuration.
         """
 
-        if self.com_state == PHandState.OFFLINE:
+        if self.com_state == PHAND_STATE.OFFLINE:
             return False
 
         if (len(pressures) != 12):
             # If there are no pressure values provided, open all fingers
             pressures = [100000] * 12            
-            pressures[PHandFingerIndex.WristLeft] = self.messages["BionicValveMessage"].set_pressures[PHandFingerIndex.WristLeft]  
-            pressures[PHandFingerIndex.WristRight] = self.messages["BionicValveMessage"].set_pressures[PHandFingerIndex.WristRight]  
-            pressures[PHandFingerIndex.CounterPressure] = self.messages["BionicValveMessage"].set_pressures[PHandFingerIndex.CounterPressure] 
-            pressures[PHandFingerIndex.ThumbSide] = self.simple_grip_pressure[PHandFingerIndex.ThumbSide]
-            pressures[PHandFingerIndex.IndexSide] = self.simple_grip_pressure[PHandFingerIndex.IndexSide]          
+            pressures[PHAND_FINGER_INDEX.WristLeft] = self.messages["BionicValveMessage"].set_pressures[PHAND_FINGER_INDEX.WristLeft]  
+            pressures[PHAND_FINGER_INDEX.WristRight] = self.messages["BionicValveMessage"].set_pressures[PHAND_FINGER_INDEX.WristRight]  
+            pressures[PHAND_FINGER_INDEX.CounterPressure] = self.messages["BionicValveMessage"].set_pressures[PHAND_FINGER_INDEX.CounterPressure] 
+            pressures[PHAND_FINGER_INDEX.ThumbSide] = self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbSide]
+            pressures[PHAND_FINGER_INDEX.IndexSide] = self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide]          
 
         delayed_open = False
 
@@ -745,9 +561,9 @@ class PHand(PhandUdpDriver):
 
         logging.debug("Closing the hand.")
         
-        if self.ctrl_mode == PhandControlModes.VALVE_CTRL:
+        if self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:
             return self.simple_close_valve(speed, pressures)            
-        elif self.ctrl_mode == PhandControlModes.PRESSURE_CTRL:
+        elif self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
             return self.simple_close_pressure(speed, pressures)
         else:
             return False
@@ -768,18 +584,18 @@ class PHand(PhandUdpDriver):
         Simply close all fingers in pressure control mode.
         """
 
-        if self.com_state == PHandState.OFFLINE:
+        if self.com_state == PHAND_STATE.OFFLINE:
             return False
 
         if len(pressures) != 12:
             pressures = self.simple_grip_pressure
 
             # SET THE WRIST PRESSURE WHEN SIMPLE CLOSING
-            pressures[PHandFingerIndex.WristLeft] = self.messages["BionicValveMessage"].set_pressures[PHandFingerIndex.WristLeft]  
-            pressures[PHandFingerIndex.WristRight] = self.messages["BionicValveMessage"].set_pressures[PHandFingerIndex.WristRight]  
-            pressures[PHandFingerIndex.CounterPressure] = self.messages["BionicValveMessage"].set_pressures[PHandFingerIndex.CounterPressure]
-            pressures[PHandFingerIndex.ThumbSide] = self.simple_grip_pressure[PHandFingerIndex.ThumbSide]
-            pressures[PHandFingerIndex.IndexSide] = self.simple_grip_pressure[PHandFingerIndex.IndexSide]                 
+            pressures[PHAND_FINGER_INDEX.WristLeft] = self.messages["BionicValveMessage"].set_pressures[PHAND_FINGER_INDEX.WristLeft]  
+            pressures[PHAND_FINGER_INDEX.WristRight] = self.messages["BionicValveMessage"].set_pressures[PHAND_FINGER_INDEX.WristRight]  
+            pressures[PHAND_FINGER_INDEX.CounterPressure] = self.messages["BionicValveMessage"].set_pressures[PHAND_FINGER_INDEX.CounterPressure]
+            pressures[PHAND_FINGER_INDEX.ThumbSide] = self.simple_grip_pressure[PHAND_FINGER_INDEX.ThumbSide]
+            pressures[PHAND_FINGER_INDEX.IndexSide] = self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide]                 
         
         delayed_close = False
 
@@ -813,11 +629,11 @@ class PHand(PhandUdpDriver):
         Function to send the position data to the phand.
         """
 
-        if self.com_state != PHandState.ONLINE:
+        if self.com_state != PHAND_STATE.ONLINE:
             time.sleep(0.5)
             return False
 
-        if self.ctrl_mode != PhandControlModes.POSITION_CTRL:
+        if self.ctrl_mode != PHAND_CONTROL_MODES.POSITION_CTRL:
             logging.warning("The pHand is not in the position control mode")
             return False
 
@@ -825,7 +641,7 @@ class PHand(PhandUdpDriver):
             logging.warning("Too less position values, 12 expected %d received", (len(data)))
             return False
 
-        msg = BionicActionMessage(sensor_id=BIONIC_MSG_IDS.VALVE_MODULE,
+        msg = BionicActionMessage(sensor_id=BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,
                                   action_id=VALVE_ACTION_IDS.SET_POSITIONS,
                                   action_values=data)
         
@@ -837,18 +653,15 @@ class PHand(PhandUdpDriver):
         Function to send the pressure data to the phand.
         """
 
-        if self.com_state != PHandState.ONLINE:
+        if self.com_state != PHAND_STATE.ONLINE:
             time.sleep(0.5)
             return False
           
-        if self.ctrl_mode != PhandControlModes.PRESSURE_CTRL:
+        if self.ctrl_mode != PHAND_CONTROL_MODES.PRESSURE_CTRL:
             logging.warning("The pHand is not in the pressure control mode")
             return False
 
-        msg = BionicActionMessage(sensor_id=BIONIC_MSG_IDS.VALVE_MODULE,
-                                  action_id=VALVE_ACTION_IDS.SET_PRESSURES,
-                                  action_values=data)
-        
+        msg = BionicSetPressureActionMessage(data)        
         self.send_data(msg.data)
         return True   
 
@@ -857,11 +670,11 @@ class PHand(PhandUdpDriver):
         Function to send the valve opening data to the phand.
         """
 
-        if self.com_state != PHandState.ONLINE:
+        if self.com_state != PHAND_STATE.ONLINE:
             time.sleep(0.5)
             return False
 
-        if self.ctrl_mode != PhandControlModes.VALVE_CTRL:
+        if self.ctrl_mode != PHAND_CONTROL_MODES.VALVE_CTRL:
             logging.warning("The pHand is not in the valve control mode")
             return False
 

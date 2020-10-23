@@ -9,7 +9,17 @@ __maintainer__ = "Timo Schwarzer"
 __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
-from bionic_message_tools.bionic_message_base import BionicMessageBase, BionicActionMessage
+from enum import IntEnum
+
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
+
+class LOOMIA_ACTION_IDS(IntEnum):
+    """
+    Action ID for the Loomia glove
+    """
+
+    SET_VALUES=0x00
 
 class BionicLoomiaMessage(BionicMessageBase):
     
@@ -22,7 +32,7 @@ class BionicLoomiaMessage(BionicMessageBase):
 	uint16_t set_measurement_delay;
 	uint16_t pressures[131];
     """
-    def __init__(self, msg_id):
+    def __init__(self, msg_id = BIONIC_MSG_IDS.LOOMIA_MSG_ID):
         super(BionicLoomiaMessage,self).__init__(msg_id)
 
         self.set_ref_voltage = 0
@@ -65,7 +75,7 @@ class BionicSetLoomiaValuesActionMessage(BionicActionMessage):
         self.action_values = action_values
 
         super(BionicSetLoomiaValuesActionMessage, self).__init__(action_id=LOOMIA_ACTION_IDS.SET_VALUES,
-                                                                 sensor_id=BIONIC_MSG_IDS.LOOMIA_BOARD,
+                                                                 sensor_id=BIONIC_MSG_IDS.LOOMIA_MSG_ID,
                                                                  action_values=action_values)
 
     def set_data(self, reference_voltage, series_resistance_sensors, d_column_switch, led_logo, led_board):

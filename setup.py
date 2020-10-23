@@ -24,6 +24,7 @@ setuptools.setup(
     ],
     install_requires=[        
         'transitions',
-        'matplotlib',        
+        'matplotlib', 
+        'netifaces'       
     ],
 )

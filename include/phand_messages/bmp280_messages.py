@@ -9,7 +9,7 @@ __maintainer__ = "Timo Schwarzer"
 __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
-from bionic_message_tools.bionic_message_base import BionicMessageBase
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
 
 class BionicBMP280Message(BionicMessageBase):
     temp = 0.0

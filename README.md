@@ -1,7 +1,7 @@
 [![FESTO](images/logo.png)](https://www.festo.com/group/de/cms/10156.htm)
 
 > <p style="font-size:30px">BionicSoftHand Python Libraries </p>
-
+<br></br>
 # LICENSE
 The Festo BionicSoftHand python libraries are published under the [GNU GPL v3.0 License](https://www.gnu.org/licenses/gpl-3.0.de.html).
 
@@ -17,9 +17,23 @@ The maximum supply pressure for the BionicSoftHand is **5 bars**. If you connect
 
 # INSTALL INSTRUCTIONS
 ## MANUAL INSTALL
->   TODO
+* Download the necessary repositories
+    * Link 1
+    * Link 2
+    * Link 3
+    * Link 4
+* And install one by one on your computer
+    
+        pip3 install .   
+
 ## AUTOMATIC INSTALL
->   TODO
+The scripts under the install directory will pull the repositories and install their packages on your computer.
+
+**Windows**:
+windows_install.ps1
+
+**Linux**:
+linux_install.bash // TODO
 
 # BIONIC SOFT HAND 2.0 SETUP
 [![FESTO](images/bionic_soft_hand.png)](https://www.festo.com/group/de/cms/10156.htm)

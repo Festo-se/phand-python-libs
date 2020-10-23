@@ -9,7 +9,10 @@ __maintainer__ = "Timo Schwarzer"
 __email__ = "timo.schwarzer@festo.com"
 __status__ = "Experimental"
 
-from bionic_message_tools.bionic_message_base import BionicMessageBase
+from enum import IntEnum
+
+from bionic_message_base.bionic_message_base import BionicMessageBase, BionicActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
 
 class BionicCylinderSensorMessage(BionicMessageBase):
     
@@ -17,7 +20,8 @@ class BionicCylinderSensorMessage(BionicMessageBase):
     calibrated_values = [0]*3
     provides = ["cylinder_index", "cylinder_wrist_left", "cylinder_wrist_right"]
 
-    def __init__(self, msg_id):        
+    def __init__(self, msg_id = BIONIC_MSG_IDS.CYLINDER_SENSOR_MSG_ID):
+        
         super(BionicCylinderSensorMessage, self).__init__(msg_id)
 
     def process_msg(self, data, device_id):
