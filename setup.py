@@ -25,6 +25,7 @@ setuptools.setup(
     install_requires=[        
         'transitions',
         'matplotlib', 
-        'netifaces'       
+        'netifaces',
+        'ruamel.yaml'   
     ],
 )

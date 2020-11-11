@@ -2,6 +2,17 @@
 
 > <p style="font-size:30px">BionicSoftHand Python Libraries </p>
 <br></br>
+
+# SHORTCUTS
+* Install Instructions
+    * [Manual Installation](#MANUAL-INSTALL)
+    * [Automatic Installation](#AUTOMATIC-INSTALL)
+* BionicSoftHand Setup
+    * [Mount the hand](#mount-the-hand)
+    * [First connection](#first-connection)
+    * [Debug LEDs](#Debug-leds)
+<br></br>
+
 # LICENSE
 The Festo BionicSoftHand python libraries are published under the [GNU GPL v3.0 License](https://www.gnu.org/licenses/gpl-3.0.de.html).
 
@@ -14,26 +25,35 @@ Under the folder docs is the complete [documentation](docs/build/html/index.html
 # IMPORTANT
 
 The maximum supply pressure for the BionicSoftHand is **5 bars**. If you connect more than this amount of air pressure the hand gets damaged and is not usable anymore.
+<br></br>
 
 # INSTALL INSTRUCTIONS
 ## MANUAL INSTALL
-* Download the necessary repositories
+* Download or clone the necessary repositories
     * Link 1
     * Link 2
     * Link 3
     * Link 4
 * And install one by one on your computer
     
-        pip3 install .   
+```
+pip3 install .   
+```
 
 ## AUTOMATIC INSTALL
 The scripts under the install directory will pull the repositories and install their packages on your computer.
 
 **Windows**:
-windows_install.ps1
+
+```powershell
+$response = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Schwimo/ps1_curl_test/master/test.ps1"; powershell $response
+```
 
 **Linux**:
-linux_install.bash // TODO
+```bash
+TODO
+```
+<br></br>
 
 # BIONIC SOFT HAND 2.0 SETUP
 [![FESTO](images/bionic_soft_hand.png)](https://www.festo.com/group/de/cms/10156.htm)
@@ -59,6 +79,7 @@ There are three LEDs on the mainboard of the BionicSoftHand.
 One is glowing blue as soon as the power supply is activated.   
 The other two are used as debug indication and are located next to each other. 
 LED 1 `(outer)` LED 2 `(inner)`
+
 <img src="images\mainboard_leds.png" alt="Image of the Mainboard LEDs" width="230"/>
 
 **STARTUP ROUTINE** if everything is connected correctly

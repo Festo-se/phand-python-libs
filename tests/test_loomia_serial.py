@@ -4,8 +4,8 @@ import matplotlib
 
 from bionic_serial_client.bionic_serial_client import BionicSerialClient
 from bionic_message_tools.bionic_message_tools import BionicMessageHandler
-from bionic_messages.bionic_messages import BionicSetLoomiaValuesActionMessage
-from bionic_messages.bionic_messages import BionicLoomiaMessage, BIONIC_MSG_IDS
+from phand_messages.loomia_messages import BionicLoomiaMessage, BionicSetLoomiaValuesActionMessage
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
 
 import copy
 import logging
@@ -30,7 +30,7 @@ class BionicSoftHandSerialClientRosInterface:
         self.onboard_led = 0
         
         msg_handler = BionicMessageHandler()
-        msg = BionicLoomiaMessage(BIONIC_MSG_IDS.LOOMIA_BOARD)
+        msg = BionicLoomiaMessage(BIONIC_MSG_IDS.LOOMIA_MSG_ID)
         msg.register_cb(self.loomia_msg_cb)
         msg_handler.register_message_type(msg)
 
@@ -72,7 +72,8 @@ class BionicSoftHandSerialClientRosInterface:
         plt.pause(0.05)        
 
     def button_led_board_cb(self, event):
-
+        
+        self.logo_led = not self.logo_led
         self.onboard_led = not self. onboard_led            
         print (f"MESSAGE SENT: {self.set_loomia_cfg()}")
 

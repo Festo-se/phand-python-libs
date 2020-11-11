@@ -12,10 +12,8 @@ Write-Host "Selected" $FolderBrowser.SelectedPath
 cd $FolderBrowser.SelectedPath
 
 Write-Host "Checkout the bionic_python_libs repository from Github"
-git clone https://github.com/Schwimo/bionic_msg
 
 Write-Host "Checkout the phand_python_libs repository from Github"
-git clone https://github.com/Schwimo/phand_test
 
 Write-Host "Checkout the dhcp implementation repository from Github"
 
