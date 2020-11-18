@@ -23,9 +23,7 @@ These libraries implement the necessary messages and core functionalities to com
 Under the folder docs is the complete [documentation](docs/build/html/index.html) for the code.
 
 # IMPORTANT
-
 The maximum supply pressure for the BionicSoftHand is **5 bars**. If you connect more than this amount of air pressure the hand gets damaged and is not usable anymore.
-<br></br>
 
 # INSTALL INSTRUCTIONS
 ## MANUAL INSTALL

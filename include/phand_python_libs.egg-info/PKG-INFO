@@ -34,6 +34,7 @@ Description: [![FESTO](images/logo.png)](https://www.festo.com/group/de/cms/1015
         
         The maximum supply pressure for the BionicSoftHand is **5 bars**. If you connect more than this amount of air pressure the hand gets damaged and is not usable anymore.
         <br></br>
+        
         # INSTALL INSTRUCTIONS
         ## MANUAL INSTALL
         * Download or clone the necessary repositories
@@ -61,6 +62,7 @@ Description: [![FESTO](images/logo.png)](https://www.festo.com/group/de/cms/1015
         TODO
         ```
         <br></br>
+        
         # BIONIC SOFT HAND 2.0 SETUP
         [![FESTO](images/bionic_soft_hand.png)](https://www.festo.com/group/de/cms/10156.htm)
         The BionicSoftHand is a pneumatic gripper with 12 independent controllable chambers.
