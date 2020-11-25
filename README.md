@@ -28,6 +28,9 @@ The maximum supply pressure for the BionicSoftHand is **5 bars**. If you connect
 <br></br>
 
 # INSTALL INSTRUCTIONS
+## HELPER SCRIPTS
+There are some helper scripts [here](https://github.com/Schwimo/linux_config) to setup your environment.
+
 ## MANUAL INSTALL
 * Download or clone the necessary repositories
     * Link 1
