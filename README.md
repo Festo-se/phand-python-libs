@@ -31,30 +31,21 @@ There are some helper scripts [here](https://github.com/Schwimo/linux_config) to
 
 ## MANUAL INSTALL
 * Download or clone the necessary repositories
-    * Link 1
-    * Link 2
-    * Link 3
-    * Link 4
-* And install one by one on your computer
-    
-```
-pip3 install .   
-```
+    * [PID Control](https://github.com/Schwimo/bionic-pid-control)
+    * [DHCP](https://github.com/Schwimo/bionic-dhcp)
+    * [Bionic Message Tools](https://github.com/Schwimo/bionic-message-tools)
+    * [BionicSoftHand Python Libraries](https://github.com/Schwimo/phand-python-libs)
+* And install one by one on your computer. To do this change into the root directory of each cloned repository and enter the following command. This executes the `setup.py` file and installes the libraries locally on your computer. The point in the end means to use the current directory.
+    * `` pip3 install .  ``
 
 ## AUTOMATIC INSTALL
-The scripts under the install directory will pull the repositories and install their packages on your computer.
-
-**Windows**:
-
-```powershell
-$response = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Schwimo/ps1_curl_test/master/test.ps1"; powershell $response
-```
+The automatic install is only available for the BionicSoftHand **with ROS**
 
 **Linux**:
 ```bash
-TODO
+bash <(wget -qO- https://raw.githubusercontent.com/Schwimo/linux_config/master/scripts/setup_phand.bash)
 ```
-<br></br>
+<br>
 
 # BIONIC SOFT HAND 2.0 SETUP
 [![FESTO](images/bionic_soft_hand.png)](https://www.festo.com/group/de/cms/10156.htm)
