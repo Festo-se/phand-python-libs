@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="phand-python-libs",
-    version="1.0.5",
+    version="1.0.6",
     author="Timo Schwarzer",
     author_email="timo.schwarzer@festo.com",
     description="The Festo bionic python libs",    
