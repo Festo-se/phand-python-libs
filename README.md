@@ -101,17 +101,17 @@ The mapping for each supply or exhaust valve is shown in the table below. The fi
 * **Pressure control:** If the pressure control mode is active (default), send 12 pressure values to the hand where the index below is mapped to each actor.
 * **Position control:** Not implemented yet
 
-| Index | Corresponding actor | Description |
-| ----- | ------------------- | ----------- |
-0 (12)  | Thumb side          | Rotate the thumb left / right  
-1 (13)  | Thumb lower         | Open / close the lower part of the thumb
-2 (14)  | Counter pressure    | The counter pressure is used for the wrist cylinders, the index side and the thumb rotation as restoring spring
-3 (15)  | Thumb upper         | Open / close the upper part of the thumb
-4 (16)  | Index finger upper  | Open / close the upper part of the index finger
-5 (17)  | Wrist left          | Move the left wrist cylinder up / down
-6 (18)  | Index finger lower  | Open / close the lower part of the index finger
-7 (19)  | Wrist right         | Move the right wrist cylinder up / down
-8 (20)  | Middle finger       | Open / close the middle finger
-9 (21)  | Index side          | Move the index finger left / right
-10 (22) | Ring finger         | Open / close the ring finger
-11 (23) | Pinky               | Open / close the pinky
+| Index      | Corresponding actor | Description |
+| ---------- | ------------------- | ----------- |
+0 (12)       | Thumb side          | Rotate the thumb left / right  
+1 (13)       | Thumb lower         | Open / close the lower part of the thumb
+2 (14)       | Counter pressure    | The counter pressure is used for the wrist cylinders, the index side and the thumb rotation as restoring spring
+3 (15)       | Thumb upper         | Open / close the upper part of the thumb
+4 (16)       | Index finger upper  | Open / close the upper part of the index finger
+5 (17)       | Wrist left          | Move the left wrist cylinder up / down
+6 (18)       | Index finger lower  | Open / close the lower part of the index finger
+7 (19)       | Wrist right         | Move the right wrist cylinder up / down
+8 (20)       | Middle finger       | Open / close the middle finger
+9 (21)       | Index side          | Move the index finger left / right
+10 (22)      | Ring finger         | Open / close the ring finger
+11 (23)      | Pinky               | Open / close the pinky
