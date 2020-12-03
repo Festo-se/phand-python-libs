@@ -11,6 +11,7 @@
     * [Mount the hand](#mount-the-hand)
     * [First connection](#first-connection)
     * [Debug LEDs](#Debug-leds)
+    * [Control the hand](#Control-the-hand)
 <br></br>
 
 # LICENSE
@@ -90,3 +91,27 @@ LED 1 `(outer)` LED 2 `(inner)`
  * Blue on: Not able to send data      
  * Red on: Can't set the valves        
  * Green on: Problem reading out the sensors       
+
+ ## Control the Hand
+
+The phand.py script provides several functions to communicate with the BionicSoftHand. For example if you want to move the fingers, use the function "set_pressure_data" and pass an array with 12 float values between 100000.0 (1Bar or 100000 PSI) and 600000.0. Each index of the array corresponds to a different actor. The mapping is in the table below.
+
+* **Valve control:** There are 24 valves inside the hand, 12 supply valves and 12 exhaust valves. 
+The mapping for each supply or exhaust valve is shown in the table below. The first index is always the supply valve and the second one in the brackets is used for the exhaust valve.
+* **Pressure control:** If the pressure control mode is active (default), send 12 pressure values to the hand where the index below is mapped to each actor.
+* **Position control:** Not implemented yet
+
+| Index | Corresponding actor | Description |
+| ----- | ------------------- | ----------- |
+0 (12)  | Thumb side          | Rotate the thumb left / right  
+1 (13)  | Thumb lower         | Open / close the lower part of the thumb
+2 (14)  | Counter pressure    | The counter pressure is used for the wrist cylinders, the index side and the thumb rotation as restoring spring
+3 (15)  | Thumb upper         | Open / close the upper part of the thumb
+4 (16)  | Index finger upper  | Open / close the upper part of the index finger
+5 (17)  | Wrist left          | Move the left wrist cylinder up / down
+6 (18)  | Index finger lower  | Open / close the lower part of the index finger
+7 (19)  | Wrist right         | Move the right wrist cylinder up / down
+8 (20)  | Middle finger       | Open / close the middle finger
+9 (21)  | Index side          | Move the index finger left / right
+10 (22) | Ring finger         | Open / close the ring finger
+11 (23) | Pinky               | Open / close the pinky
