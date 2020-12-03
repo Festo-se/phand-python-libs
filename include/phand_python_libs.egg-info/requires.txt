@@ -1,4 +1,0 @@
-matplotlib
-netifaces
-ruamel.yaml
-transitions

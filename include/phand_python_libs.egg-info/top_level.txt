@@ -1,4 +1,0 @@
-phand
-phand_calibration
-phand_driver
-phand_tools
