@@ -1,7 +1,12 @@
 [![FESTO](images/logo.png)](https://www.festo.com/group/de/cms/10156.htm)
 
 > <p style="font-size:30px">BionicSoftHand Python Libraries </p>
-<br></br>
+<br>
+
+# IMPORTANT NOTICES :warning:
+> :warning: **If you open the case of the BionicSoftHand there is the possibility that you get in touch with the 300V piezo electronics! Avoid touching anything inside the case!**
+
+> :warning: **The BionicSoftHand 2.0 works best with a pressure of 5.5 bars (650000 PSI)! If you go higher the hand can be damaged!** 
 
 # SHORTCUTS
 * Install Instructions
@@ -14,17 +19,8 @@
     * [Control the hand](#Control-the-hand)
 <br></br>
 
-# LICENSE
-The Festo BionicSoftHand python libraries are published under the [GNU GPL v3.0 License](https://www.gnu.org/licenses/gpl-3.0.de.html).
-
 # PURPOSE
 These libraries implement the necessary messages and core functionalities to communicate with the BionicSoftHand
-
-# DOCUMENTATION
-Under the folder docs is the complete [documentation](docs/build/html/index.html) for the code.
-
-# IMPORTANT
-The maximum supply pressure for the BionicSoftHand is **5 bars**. If you connect more than this amount of air pressure the hand gets damaged and is not usable anymore.
 
 # INSTALL INSTRUCTIONS
 ## HELPER SCRIPTS
@@ -115,3 +111,6 @@ The mapping for each supply or exhaust valve is shown in the table below. The fi
 9 (21)       | Index side          | Move the index finger left / right
 10 (22)      | Ring finger         | Open / close the ring finger
 11 (23)      | Pinky               | Open / close the pinky
+
+# LICENSE
+The Festo BionicSoftHand python libraries are published under the [GNU GPL v3.0 License](https://www.gnu.org/licenses/gpl-3.0.de.html).
