@@ -8,6 +8,8 @@
 
 > :warning: **The BionicSoftHand 2.0 works best with a pressure of 5.5 bars (650000 PSI)! If you go higher the hand can be damaged!** 
 
+> :warning: **The BionicSoftHand 2.0 is a prototype and not a series product.** 
+
 # SHORTCUTS
 * Install Instructions
     * [Manual Installation](#MANUAL-INSTALL)
