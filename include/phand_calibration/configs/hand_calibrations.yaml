@@ -4,3 +4,14 @@
     no_pressure_angle: 10.0
     second_position: 0.0
     second_position_angle: 10.0
+"\x8D\x8E\x17\t\x1D\x84ØjZ\x91|\x19½{\x06\x9C":
+  cylinder_wrist_left:
+    start_pos: 3055.0
+    end_pos: 1911.0
+    calib_distance: 15.0
+    zero_pos: 2661.0
+  cylinder_wrist_right:
+    start_pos: 1073.0
+    end_pos: 2538.0
+    calib_distance: 15.0
+    zero_pos: 1723.0

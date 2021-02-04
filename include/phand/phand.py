@@ -34,6 +34,7 @@ from phand_messages.valve_terminal_messages import VALVE_ACTION_IDS
 from phand.phand_constants import PHAND_FINGER_INDEX, PHAND_STATE, PHAND_GRIP_MODES, PHAND_CONTROL_MODES
 from phand.phand_joint_calculations import JointCalculations
 from phand_calibration.phand_sensor_calibration import PhandSensorCalibrationValue
+from phand_control.wrist_control.wristCtrl_wrapper import WristCtrl
 
 DEFAULT_MAX_FINGER_PRESSURE = 600000.0
 
@@ -55,6 +56,9 @@ class PHand(PhandUdpDriver):
     connected_sensor_names = []
     connected_sensor_ids = []
     required_msgs_ids = []
+
+    pressure_data = [100000.0] * 12
+    wrist_positions = [20.0] * 2
 
     simple_grip_valve_supply = [0.0] * 12
     simple_grip_valve_exhaust = [1.0] * 12
@@ -81,7 +85,7 @@ class PHand(PhandUdpDriver):
 
         self.yaml = YAML()
         self.calibration_data = {}
-        self.config_file_path = os.path.dirname(os.path.abspath(__file__)) + '../phand_calibration/configs/hand_calibrations.yaml'
+        self.config_file_path = os.path.dirname(os.path.abspath(__file__)) + '/../phand_calibration/configs/hand_calibrations.yaml'
 
         self.jc = JointCalculations()
 
@@ -95,6 +99,9 @@ class PHand(PhandUdpDriver):
         self.messages["BionicLoomiaMessage"].register_cb(self.loomia_cb)
         self.messages["BionicFlexMessage"].register_cb(self.flex_cb)
 
+        # Initialize Controllers
+        self.ctrl = WristCtrl()
+
         self.run_in_thread()
 
         self.main_loop_thread = threading.Thread(target=self.main_loop)
@@ -106,15 +113,44 @@ class PHand(PhandUdpDriver):
         """
 
         while not self.is_shutdown:
-            time.sleep(0.1)
+            time.sleep(0.01)
             self.generate_hand_state()
 
             if len(str(self.hand_id)) > 1 and not self.is_calibrated:
                 self.load_calibration_data()
                 logging.error(self.calibration_data)
 
+            if self.com_state != PHAND_STATE.ONLINE:
+                continue 
+
+            self.phand_control_update()
+
+            if self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
+                msg = BionicSetPressureActionMessage(self.pressure_data) 
+                self.send_data(msg.data)
+                continue 
 
         logging.info("Shutdown the phand main_loop")
+    
+    
+    def phand_control_update(self):
+        """
+        Control the phand wrist. In the future you will find finger and pressure control in general here as well
+        """
+        if self.ctrl_mode != PHAND_CONTROL_MODES.PRESSURE_CTRL:
+            logging.warning("phand_control_update requires pressure control mode")
+        
+        self.pressure_data = self.messages["BionicValveMessage"].set_pressures          
+        wrist_pos_current = self.messages["BionicCylinderSensorMessage"].values
+        
+        wristPressures = self.ctrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], wrist_positions[0], wrist_positions[1], self.pressure_data[PHAND_FINGER_INDEX.CounterPressure], 0.1)
+        
+        self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = wristPressures[2]
+        self.pressure_data[PHAND_FINGER_INDEX.WristLeft] = wristPressures[0] 
+        self.pressure_data[PHAND_FINGER_INDEX.WristRight] = wristPressures[1]
+
+        #elif self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:
+
 
     def set_required_msg_ids(self, msg_ids):
         """
@@ -652,17 +688,12 @@ class PHand(PhandUdpDriver):
         """
         Function to send the pressure data to the phand.
         """
-
-        if self.com_state != PHAND_STATE.ONLINE:
-            time.sleep(0.5)
-            return False
           
-        if self.ctrl_mode != PHAND_CONTROL_MODES.PRESSURE_CTRL:
-            logging.warning("The pHand is not in the pressure control mode")
-            return False
+        if self.ctrl_mode != PHAND_CONTROL_MODES.PRESSURE_CTRL:            
+            logging.warning("The pressure values are not transmitted since you are not in pressure control mode")
 
-        msg = BionicSetPressureActionMessage(data)        
-        self.send_data(msg.data)
+        self.pressure_data = data     
+        
         return True   
 
     def set_valve_opening_data(self, supply_valves, exhaust_valves):
