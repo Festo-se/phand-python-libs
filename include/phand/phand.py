@@ -143,7 +143,7 @@ class PHand(PhandUdpDriver):
         self.pressure_data = self.messages["BionicValveMessage"].set_pressures          
         wrist_pos_current = self.messages["BionicCylinderSensorMessage"].values
         
-        wristPressures = self.ctrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], wrist_positions[0], wrist_positions[1], self.pressure_data[PHAND_FINGER_INDEX.CounterPressure], 0.1)
+        wristPressures = self.ctrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], self.wrist_positions[0], self.wrist_positions[1], self.pressure_data[PHAND_FINGER_INDEX.CounterPressure], 0.1)
         
         self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = wristPressures[2]
         self.pressure_data[PHAND_FINGER_INDEX.WristLeft] = wristPressures[0] 
