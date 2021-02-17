@@ -1,114 +1,49 @@
 #!/usr/bin/env python3
 
-import os.path
-import sys
-my_path = os.path.abspath(os.path.dirname(__file__))
-path = os.path.join(my_path, "../include")
-sys.path.append(path)
-
-from bionic_messages.bionic_messages import BionicValveMessage, BionicActionMessage
-from phand_core_lib.phand_driver import PhandUdpDriver
-import threading
-import time
 import logging
-import socket
-import math
+import time
 
-from dhcp_server.dhcp import DHCPServer, DHCPServerConfiguration
+from phand.phand import PHand
+from phand_messages.phand_message_constants import BIONIC_MSG_IDS
+from phand_messages.cylinder_messages import BionicCylinderSensorMessage
+from phand_messages.flex_sensor_messages import BionicFlexSensorMessage
+from phand_messages.valve_terminal_messages import BionicValveMessage
 
 class PHandTestingClass:
     """
     Class to test the control of a finger with the bendlabs sensor
     """
 
-    x = 0
-    data = [0] * 24
-
-    pos_control = False
+    required_msgs_ids = [BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,                                                                           
+                         BIONIC_MSG_IDS.FLEX_SENSOR_MSG_ID,
+                         BIONIC_MSG_IDS.CYLINDER_SENSOR_MSG_ID
+                         ]
+    current_time = 0
 
     def __init__(self): 
 
         logging.basicConfig(level=logging.INFO)
         logging.info("Starting pHand Communication Test") 
         
-        self.phandDriver = PhandUdpDriver()
-        self.phandDriver._callback_function = self.callback
-        phandThread = self.phandDriver.run_in_thread()       
-
-        self.test = False 
-
-        while not (self.phandDriver._state == "CONNECTED"):
-            time.sleep(1)
-            continue
-
-        #self.calibrate_spectra()
+        self.phand = PHand()
+        self.phand.register_new_data_available_cb(self.new_data_available_cb)
+        self.phand.set_required_msg_ids(self.required_msgs_ids)
         
         while True:
+            time.sleep(10)
+            continue
 
-            try:
-                time.sleep(0.001) 
-            except KeyboardInterrupt:
-                self.phandDriver.shutdown()
-                phandThread.join()
-                break
-                
-            try:
-                if self.phandDriver._state == "CONNECTED":
-                    self.set_position()
-                    self.test = not self.test
-            except:
-                pass
+    def new_data_available_cb(self):
+        """
+        This is called when new data is available from the hand.
+        """ 
 
-    
+        press_diff = self.phand.messages["BionicValveMessage"].last_msg_received_time - self.current_time                 
+        flex_diff = self.phand.messages["BionicFlexMessage"].last_msg_received_time - self.current_time
+        cylinder_diff = self.phand.messages["BionicCylinderSensorMessage"].last_msg_received_time - self.current_time
 
-    def calibrate_spectra(self):
-
-        input("Press ENTER to set initial calib value.")
-        my_data = [0.0]
-        action_msg = BionicActionMessage(0x42, 0x01, my_data)
-        self.phandDriver.send_data(action_msg.msg)
-    	
-        print("Setting the pressure to an angle of about 90 degrees")
-        for x in range(24):
-            if x < 12:
-                self.data[x] = 0.8
-            else:
-                self.data[x] = 0.0
-        action_msg = BionicActionMessage(0x41, 0x02, self.data)
-        self.phandDriver.send_data(action_msg.msg)
-
-        current_input = input("Write the angles you set the fingers")
-        my_data = [90.0]
-        action_msg = BionicActionMessage(0x42, 0x01, my_data)
-        self.phandDriver.send_data(action_msg.msg)
-
-    def set_position(self):
-
-        if self.pos_control:
-            y = math.degrees(math.sin(self.x)) + 45
-            self.data = [y] * 5
-            #self.data = [60] * 5
-            action_msg = BionicActionMessage(0x41, 0x03, self.data)
-            self.phandDriver.send_data(action_msg.msg) 
+        self.current_time = int(round(time.time() * 1000))
             
-        else:
-            y = abs(math.sin(self.x))
-        
-            for x in range(24):
-                if x < 12:
-                    self.data[x] = y
-                else:
-                    self.data[x] = 1.0 - y
-
-            action_msg = BionicActionMessage(0x41, 0x02, self.data)
-            self.phandDriver.send_data(action_msg.msg) 
-        
-        self.x += 0.001
-        
-    def callback(self, data):
-    
-        pass
-   
 if __name__ == '__main__':
 
     PHandTestingClass()

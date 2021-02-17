@@ -340,10 +340,14 @@ class PhandUdpDriver:
         """
         Send the data via the udp interface
         """
-        if type(self.udp_client) == BionicUdpClient:
-            self.udp_client.send(data)
-        else:
-            logging.error("Tried to send before connection was made to the hand. Data will be ignored")
+        
+        try:
+            if type(self.udp_client) == BionicUdpClient:
+                self.udp_client.send(data)
+            else:
+                logging.error("Tried to send before connection was made to the hand. Data will be ignored")
+        except:
+            logging.error("Tried to send before connection was made to the hand. Data will be ignored")            
 
     def send_heartbeat(self):
         """
