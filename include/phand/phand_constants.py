@@ -29,7 +29,9 @@ class PHAND_CONTROL_MODES(IntEnum):
 
     VALVE_CTRL = 1
     PRESSURE_CTRL = 2
-    POSITION_CTRL = 3
+    WRIST_CTRL = 3
+    FINGER_CTRL = 4
+    POSITION_CTRL = 5
 
 class PHAND_GRIP_MODES(IntEnum):
 
