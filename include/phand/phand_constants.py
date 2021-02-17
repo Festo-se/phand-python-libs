@@ -27,9 +27,11 @@ class PHAND_STATE(IntEnum):
 
 class PHAND_CONTROL_MODES(IntEnum):
 
-    VALVE_CTRL = 1
-    PRESSURE_CTRL = 2
-    POSITION_CTRL = 3
+    VALVE_CTRL = 0x01
+    PRESSURE_CTRL = 0x02
+    WRIST_CTRL = 0x03
+    FINGER_CTRL = 0x04
+    POSITION_CTRL = 0x05    
 
 class PHAND_GRIP_MODES(IntEnum):
 

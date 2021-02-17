@@ -57,23 +57,11 @@ class PHand(PhandUdpDriver):
     connected_sensor_ids = []
     required_msgs_ids = []
 
+    valve_data_supply = [0.0] * 12
+    valve_data_exhaust = [0.0] * 12
     pressure_data = [100000.0] * 12
     wrist_positions = [20.0] * 2
-
-    simple_grip_valve_supply = [0.0] * 12
-    simple_grip_valve_exhaust = [1.0] * 12
-    simple_grip_pressure = [0.0] * 12
-    simple_grip_position = [0.0] * 12
-
-    wrist_left_calib_step = 26.3
-    wrist_left_calib_zero = 2192
-    wrist_left_calib_min = 2992
-    wrist_left_calib_max = 1887
-
-    wrist_right_calib_step = 29.4
-    wrist_right_calib_zero = 2065
-    wrist_right_calib_min = 1026
-    wrist_right_calib_max = 2320
+    finger_positions = [0.0] * 9
 
     def __init__(self):
 
@@ -122,35 +110,45 @@ class PHand(PhandUdpDriver):
 
             if self.com_state != PHAND_STATE.ONLINE:
                 continue 
-
-            self.phand_control_update()
-
-            if self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
+    
+            if self.ctrl_mode == PHAND_CONTROL_MODES.WRIST_CTRL:
+                self.phand_wrist_control_update()            
                 msg = BionicSetPressureActionMessage(self.pressure_data) 
                 self.send_data(msg.data)
+            elif self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
+                msg = BionicSetPressureActionMessage(self.pressure_data) 
+                self.send_data(msg.data)
+            elif self.ctrl_mode == PHAND_CONTROL_MODES.FINGER_CTRL:
+                # Call finger controller update
+                msg = BionicSetPressureActionMessage(self.pressure_data) 
+                self.send_data(msg.data)               
                 continue 
 
-        logging.info("Shutdown the phand main_loop")
+        logging.info("Shutdown the phand main_loop")    
     
-    
-    def phand_control_update(self):
+    def phand_wrist_control_update(self):
         """
-        Control the phand wrist. In the future you will find finger and pressure control in general here as well
+        Control the phand wrist. 
+        TODO: Implement finger position control as well
         """
-        if self.ctrl_mode != PHAND_CONTROL_MODES.PRESSURE_CTRL:
-            logging.warning("phand_control_update requires pressure control mode")
+
+        if self.ctrl_mode != PHAND_CONTROL_MODES.WRIST_CTRL:
+            logging.warning("phand_wrist_control_update requires wrist control mode")
         
+        # Take the current set pressures
         self.pressure_data = self.messages["BionicValveMessage"].set_pressures          
+        # Take the current cylinder values
         wrist_pos_current = self.messages["BionicCylinderSensorMessage"].values
         
-        wristPressures = self.ctrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], wrist_positions[0], wrist_positions[1], self.pressure_data[PHAND_FINGER_INDEX.CounterPressure], 0.1)
+        # Update the pressures for the cylinders
+        wristPressures = self.ctrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], self.wrist_positions[0], self.wrist_positions[1], self.pressure_data[PHAND_FINGER_INDEX.CounterPressure], 0.1)
         
+        # Add the new pressures to the pressure data
         self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = wristPressures[2]
         self.pressure_data[PHAND_FINGER_INDEX.WristLeft] = wristPressures[0] 
         self.pressure_data[PHAND_FINGER_INDEX.WristRight] = wristPressures[1]
 
         #elif self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:
-
 
     def set_required_msg_ids(self, msg_ids):
         """
@@ -289,7 +287,6 @@ class PHand(PhandUdpDriver):
             return False
 
         self.ctrl_mode = ctrl_mode
-
         
         action_message = BionicSetControlModeActionMessage(self.ctrl_mode)
         self.send_data(action_message.data)
@@ -620,7 +617,7 @@ class PHand(PhandUdpDriver):
         Simply close all fingers in pressure control mode.
         """
 
-        if self.com_state == PHAND_STATE.OFFLINE:
+        if self.com_state == PHAND_STATE.OFFLINE:            
             return False
 
         if len(pressures) != 12:
@@ -660,28 +657,31 @@ class PHand(PhandUdpDriver):
 
         return self.set_pressure_data(pressures)
 
-    def set_position_data(self, data):
+    def set_wrist_position_data(self, data):
+        """
+        Function to set the wrist positions for the hand.
+        """
+
+        if len(data) != 2:
+            logging.warning("Too less wrist position values, 2 expected %d received", (len(data)))
+            return False
+
+        self.wrist_positions = data
+        return True   
+
+    def set_finger_position_data(self, data):
         """
         Function to send the position data to the phand.
         """
 
-        if self.com_state != PHAND_STATE.ONLINE:
-            time.sleep(0.5)
-            return False
-
         if self.ctrl_mode != PHAND_CONTROL_MODES.POSITION_CTRL:
-            logging.warning("The pHand is not in the position control mode")
+            logging.warning("The pHand is not in the position control mode, values are not transmitted to the hand.")            
+
+        if len(data) != 9:
+            logging.warning("Too less position values, 9 expected %d received", (len(data)))
             return False
 
-        if len(data) < 12:
-            logging.warning("Too less position values, 12 expected %d received", (len(data)))
-            return False
-
-        msg = BionicActionMessage(sensor_id=BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,
-                                  action_id=VALVE_ACTION_IDS.SET_POSITIONS,
-                                  action_values=data)
-        
-        self.send_data(msg.data)
+        self.finger_positions = data
         return True   
 
     def set_pressure_data(self, data):
@@ -692,8 +692,11 @@ class PHand(PhandUdpDriver):
         if self.ctrl_mode != PHAND_CONTROL_MODES.PRESSURE_CTRL:            
             logging.warning("The pressure values are not transmitted since you are not in pressure control mode")
 
-        self.pressure_data = data     
-        
+        if len(data) != 12:
+            logging.warning("Too less position values, 12 expected %d received", (len(data)))
+            return False
+
+        self.pressure_data = data             
         return True   
 
     def set_valve_opening_data(self, supply_valves, exhaust_valves):
@@ -701,16 +704,18 @@ class PHand(PhandUdpDriver):
         Function to send the valve opening data to the phand.
         """
 
-        if self.com_state != PHAND_STATE.ONLINE:
-            time.sleep(0.5)
-            return False
-
         if self.ctrl_mode != PHAND_CONTROL_MODES.VALVE_CTRL:
-            logging.warning("The pHand is not in the valve control mode")
+            logging.warning("The pHand is not in the valve control mode, values are not transmitted to the hand.")            
+
+        if len(supply_valves) != 12:
+            logging.warning("Too less supply values, 12 expected %d received", (len(data)))
+            return False
+        if len(exhaust_valves) != 12:
+            logging.warning("Too less exhaust values, 12 expected %d received", (len(data)))
             return False
 
-        msg = BionicSetValvesActionMessage(supply_valves, exhaust_valves)        
-        self.send_data(msg.data)
+        self.valve_data_supply = supply_valves
+        self.valve_data_exhaust = exhaust_valves        
         return True   
 
     # Udp message callbacks
