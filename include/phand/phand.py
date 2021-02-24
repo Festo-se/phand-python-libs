@@ -100,10 +100,16 @@ class PHand(PhandUdpDriver):
         """
         This is the main loop which is not returning
         """
+                
+        endTime = time.time()
+        currentTime = time.time()
 
         while not self.is_shutdown:
             
-            time.sleep(0.005)
+            currentTime = time.time()
+            if (currentTime - endTime) < 0.005:                                
+                continue
+            
             self.generate_hand_state()
 
             if len(str(self.hand_id)) > 1 and not self.is_calibrated:
@@ -133,6 +139,8 @@ class PHand(PhandUdpDriver):
             elif self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:
                 msg = BionicSetValvesActionMessage(self.valve_data_supply, self.valve_data_exhaust)
                 self.send_data(msg.data)
+                        
+            endTime = time.time()            
 
         logging.info("Shutdown the phand main_loop")
     
@@ -146,6 +154,7 @@ class PHand(PhandUdpDriver):
             pass
         else:
             logging.warning("phand_finger_control_update requires fringer or position control mode to be active")
+            return
 
         logging.info("Finger controller is not implemented.")
 
@@ -159,6 +168,7 @@ class PHand(PhandUdpDriver):
             pass
         else:
             logging.warning("phand_wrist_control_update requires wrist or position control mode to be active")
+            return
         
         # Take the current cylinder values
         wrist_pos_current = self.messages["BionicCylinderSensorMessage"].values
@@ -317,8 +327,7 @@ class PHand(PhandUdpDriver):
         else:
             action_message = BionicSetControlModeActionMessage(PHAND_CONTROL_MODES.PRESSURE_CTRL)        
         
-        self.send_data(action_message.data)
-
+        self.send_data(action_message.data)        
         return True
 
     def set_grip_config(self, grip_mode):
