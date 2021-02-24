@@ -30,10 +30,10 @@ There are some helper scripts [here](https://github.com/Schwimo/linux_config) to
 
 ## MANUAL INSTALL
 * Download or clone the necessary repositories
-    * [PID Control](https://github.com/Schwimo/bionic-pid-control)
-    * [DHCP](https://github.com/Schwimo/bionic-dhcp)
-    * [Bionic Message Tools](https://github.com/Schwimo/bionic-message-tools)
-    * [BionicSoftHand Python Libraries](https://github.com/Schwimo/phand-python-libs)
+    * [PID Control](https://github.com/Festo-se/bionic-pid-control)
+    * [DHCP](https://github.com/Festo-se/bionic-dhcp)
+    * [Bionic Message Tools](https://github.com/Festo-se/bionic-message-tools)
+    * [BionicSoftHand Python Libraries](https://github.com/Festo-se/phand-python-libs)
 * And install one by one on your computer. To do this change into the root directory of each cloned repository and enter the following command. This executes the `setup.py` file and installes the libraries locally on your computer. The point in the end means to use the current directory.
     * `` pip3 install .  ``
 
