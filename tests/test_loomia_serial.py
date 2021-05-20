@@ -40,7 +40,7 @@ class BionicSoftHandSerialClientRosInterface:
         self.action_msg = BionicSetLoomiaValuesActionMessage(2.2, [1000]*12, 75, 0, 0)
         #msg_handler.register_message_type(self.action_msg)
             
-        self.sc = BionicSerialClient(message_handler=msg_handler, baud=2000000)        
+        self.sc = BionicSerialClient(message_handler=msg_handler, baud=2000000, port="COM30")
         self.sc.run_in_thread()
         
         while not self._shutdown:
@@ -49,6 +49,7 @@ class BionicSoftHandSerialClientRosInterface:
     def init_plot(self):
 
         self.fig, self.ax = plt.subplots()  
+        self.fig.size = (10, 10)
         ledboard = plt.axes([0.81, 0.05, 0.1, 0.075])
         plt.subplots_adjust(bottom=0.2)          
         bLedBoard = Button(ledboard, 'BOARD LED')

@@ -14,8 +14,6 @@ available_sensors = []
 
 valve_terminal_changed = False
 valve_terminal_found = False
-imu_found = False
-imu_changed = False
 glove_found = False
 glove_changed = False
 flex_found = False
@@ -23,32 +21,26 @@ flex_changed = False
 cylinder_found = False
 cylinder_changed = False
 
-sensors_count = 5
+sensors_count = 4
 sensors_found = 0
 
 def new_data_available_cb():
 
-    global valve_terminal_found, valve_terminal_changed
-    global imu_found, imu_changed
+    global valve_terminal_found, valve_terminal_changed    
     global glove_found, glove_changed
     global flex_found, flex_changed
     global cylinder_found, cylinder_changed    
 
     current_time = int(round(time.time() * 1000))
-    press_diff = phand.messages["BionicValveMessage"].last_msg_received_time - current_time 
-    imu_diff = phand.messages["BionicIMUDataMessage"].last_msg_received_time - current_time        
+    press_diff = phand.messages["BionicValveMessage"].last_msg_received_time - current_time     
     loomia_diff = phand.messages["BionicLoomiaMessage"].last_msg_received_time - current_time
     flex_diff = phand.messages["BionicFlexMessage"].last_msg_received_time - current_time
     cylinder_diff = phand.messages["BionicCylinderSensorMessage"].last_msg_received_time - current_time
 
     if press_diff >= 0 and not valve_terminal_found:                
         valve_terminal_found = True
-        valve_terminal_changed = True
-    
-    if imu_diff >= 0 and not imu_found:            
-        imu_found = True
-        imu_changed = True
-
+        valve_terminal_changed = True    
+  
     if loomia_diff >= 0 and not glove_found:                    
         glove_found = True
         glove_changed = True        
@@ -61,8 +53,7 @@ def new_data_available_cb():
         cylinder_found = True
         cylinder_changed = True
 
-required_msgs_ids = [BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,                         
-                     BIONIC_MSG_IDS.IMU_MAINBOARD_MSG_ID,
+required_msgs_ids = [BIONIC_MSG_IDS.VALVE_MODULE_MSG_ID,                                              
                      BIONIC_MSG_IDS.LOOMIA_MSG_ID,
                      BIONIC_MSG_IDS.FLEX_SENSOR_MSG_ID,
                      BIONIC_MSG_IDS.CYLINDER_SENSOR_MSG_ID
@@ -81,12 +72,7 @@ try:
 
     while True:        
         time.sleep(0.05)    
-
-        if imu_changed and imu_found:            
-            sensors_found += 1
-            print(f"Onboard imu sensor found ({sensors_found}/{sensors_count})")    
-            imu_changed = False            
-
+    
         if valve_terminal_changed and valve_terminal_found:            
             sensors_found += 1
             print(f"Valve terminal found ({sensors_found}/{sensors_count})")

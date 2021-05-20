@@ -4,7 +4,7 @@
  *** TargetLink subsystem : BionicHand_r/wristCtrl
  *** Codefile             : udt_b.h
  ***
- *** Generation date: 2021-01-22 12:04:15
+ *** Generation date: 2021-04-15 13:06:22
  ***
  *** TargetLink version      : 5.0 from 02-Oct-2019
  *** Code generator version  : Build Id 5.0.0.24 from 2019-10-07 12:46:33
@@ -24,7 +24,7 @@ struct wrist_const_tag {
    Float32 A2;
    Float32 A4;
    Float32 f_diff_x;
-   Float32 v_sign;
+   Float32 rateLim;
    Float32 limit_I;
    Float32 p4;
 };

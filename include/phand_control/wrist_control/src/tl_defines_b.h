@@ -4,7 +4,7 @@
  *** TargetLink subsystem : BionicHand_r/wristCtrl
  *** Codefile             : tl_defines_b.h
  ***
- *** Generation date: 2021-01-22 12:04:14
+ *** Generation date: 2021-04-15 13:06:22
  ***
  *** TargetLink version      : 5.0 from 02-Oct-2019
  *** Code generator version  : Build Id 5.0.0.24 from 2019-10-07 12:46:33
