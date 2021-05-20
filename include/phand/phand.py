@@ -140,7 +140,7 @@ class PHand(PhandUdpDriver):
                self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
                 msg = BionicSetPressureActionMessage(self.pressure_data)                 
                 self.send_data(msg.data)
-            elif self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:
+            elif self.ctrl_mode == PHAND_CONTROL_MODES.VALVE_CTRL:                
                 msg = BionicSetValvesActionMessage(self.valve_data_supply, self.valve_data_exhaust)
                 self.send_data(msg.data)
                         
@@ -160,30 +160,25 @@ class PHand(PhandUdpDriver):
             logging.warning("phand_finger_control_update requires fringer or position control mode to be active")
             return
 
-        # Take the current cylinder values
-        fingerFlexPositions = self.messages["BionicFlexMessage"].values
-        fingerSidePositions = self.messages["BionicCylinderSensorMessage"].values
-
-        # topfingersensors = fingerFlexPositions[5-9]
-        # botFingerSensors = fingerFlexPositions[0-4]
-        # desFingerPositions = [7]
-        # actPosIndexCyl = fingerSidePositions[0]
-        # actPosDrvs = fingerFlexPositions[10]
-        # desPosIndexCyl = 0
-        # desPosDrvs = 0
         # Update the pressures for the cylinders
-        fingerPressures = self.fingerCtrl.fingerUpdate(fingerFlexPositions[5:10],
-                                                       fingerFlexPositions[0:5],
+        fingerPressures = self.fingerCtrl.fingerUpdate(self.messages["BionicFlexMessage"].top_sensors,
+                                                       self.messages["BionicFlexMessage"].bot_sensors,
                                                        self.finger_positions,
-                                                       fingerSidePositions[0],
-                                                       fingerFlexPositions[0], 
+                                                       self.messages["BionicCylinderSensorMessage"].values[0],
+                                                       self.messages["BionicFlexMessage"].drvs_potti, 
                                                        self.index_side_position, 
                                                        self.drvs_position)
-        
+
         # Add the new pressures to the pressure data
-        #self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = wristPressures[2]
-        #self.pressure_data[PHAND_FINGER_INDEX.WristLeft] = wristPressures[0] 
-        #self.pressure_data[PHAND_FINGER_INDEX.WristRight] = wristPressures[1]
+        self.pressure_data[PHAND_FINGER_INDEX.Pinky] = fingerPressures[0][6]
+        self.pressure_data[PHAND_FINGER_INDEX.Ring] = fingerPressures[0][5]
+        self.pressure_data[PHAND_FINGER_INDEX.Middle] = fingerPressures[0][4]
+        self.pressure_data[PHAND_FINGER_INDEX.IndexLower] = fingerPressures[0][2]
+        self.pressure_data[PHAND_FINGER_INDEX.IndexUpper] = fingerPressures[0][3]
+        self.pressure_data[PHAND_FINGER_INDEX.ThumbLower] = fingerPressures[0][0]
+        self.pressure_data[PHAND_FINGER_INDEX.ThumbUpper] = fingerPressures[0][1]
+        self.pressure_data[PHAND_FINGER_INDEX.IndexSide] = fingerPressures[1] 
+        self.pressure_data[PHAND_FINGER_INDEX.ThumbSide] = fingerPressures[2]
 
     def phand_wrist_control_update(self):
         """
@@ -436,8 +431,8 @@ class PHand(PhandUdpDriver):
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide] = 700000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexLower] = 460000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexUpper] = 460000.0
-            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingLower] = 100000.0
-            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingUpper] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Middle] = 100000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Ring] = 100000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.Pinky] = 100000.0
         
         elif grip_mode == PHAND_GRIP_MODES.PARALLEL:
@@ -448,8 +443,8 @@ class PHand(PhandUdpDriver):
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide] = 700000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexLower] = 460000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexUpper] = 460000.0
-            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingLower] = 460000.0
-            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingUpper] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Middle] = 460000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Ring] = 460000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.Pinky] = 460000.0
 
         elif grip_mode == PHAND_GRIP_MODES.CONCENTRIC:
@@ -460,8 +455,8 @@ class PHand(PhandUdpDriver):
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexSide] = 100000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexLower] = 600000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.IndexUpper] = 600000.0
-            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingLower] = 600000.0
-            self.simple_grip_pressure[PHAND_FINGER_INDEX.MidRingUpper] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Middle] = 600000.0
+            self.simple_grip_pressure[PHAND_FINGER_INDEX.Ring] = 600000.0
             self.simple_grip_pressure[PHAND_FINGER_INDEX.Pinky] = 600000.0
             
         else:
@@ -732,19 +727,16 @@ class PHand(PhandUdpDriver):
 
     def set_finger_position_data(self, data):
         """
-        Function to send the position data to the phand.
+        Function to set the finger positions for the hand
         """
-
-        if self.ctrl_mode != PHAND_CONTROL_MODES.POSITION_CTRL:
-            logging.warning("The pHand is not in the position control mode, values are not transmitted to the hand.")            
 
         if len(data) != 9:
             logging.warning("Too less position values, 9 expected %d received", (len(data)))
             return False
-
-        self.finger_positions = data[0:8]
-        self.index_side_position = data[8]
-        self.drvs_position = data[9]
+        
+        self.finger_positions = data[0:7]
+        self.index_side_position = data[7]
+        self.drvs_position = data[8]
         return True   
 
     def set_pressure_data(self, data):
@@ -779,10 +771,10 @@ class PHand(PhandUdpDriver):
             logging.warning("The pHand is not in the valve control mode, values are not transmitted to the hand.")            
 
         if len(supply_valves) != 12:
-            logging.warning("Too less supply values, 12 expected %d received", (len(data)))
+            logging.warning("Too less supply values, 12 expected %d received", (len(supply_valves)))
             return False
         if len(exhaust_valves) != 12:
-            logging.warning("Too less exhaust values, 12 expected %d received", (len(data)))
+            logging.warning("Too less exhaust values, 12 expected %d received", (len(exhaust_valves)))
             return False
 
         self.valve_data_supply = supply_valves

@@ -10,8 +10,8 @@ class PHAND_FINGER_INDEX(IntEnum):
     IndexSide = 9
     IndexLower = 6
     IndexUpper = 4
-    MidRingLower = 8
-    MidRingUpper = 10
+    Middle = 8
+    Ring = 10
     Pinky = 11
 
     CounterPressure = 2

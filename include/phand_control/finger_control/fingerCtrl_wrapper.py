@@ -4,7 +4,6 @@ import os
 from ctypes import *
 from sys import platform
 
-
 class FingerControlTuningStruct(Structure):
     _fields_ = [('P_big', c_float), 
                 ('P_small', c_float), 
