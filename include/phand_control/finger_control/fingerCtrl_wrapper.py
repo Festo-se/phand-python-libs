@@ -67,7 +67,7 @@ class FingerCtrl:
         # BottomFinger Sensor Values UInt16 
         Se1_BotFingerSensors = (c_float * 5)(botFingerSensors[0], botFingerSensors[1], botFingerSensors[2], botFingerSensors[3], botFingerSensors[4])      
 
-        # desired position cylinder 2 in mm
+        # desired finger position
         Se1_desFingerPos     = (c_float * 7)(desFingerPositions[0], desFingerPositions[1], desFingerPositions[2], desFingerPositions[3], desFingerPositions[4], desFingerPositions[5], desFingerPositions[6])     
 
         Se1_reset            = c_char(0)                             # reset Controller (Integral Part)

@@ -36,6 +36,7 @@ from phand.phand_constants import PHAND_FINGER_INDEX, PHAND_STATE, PHAND_GRIP_MO
 from phand.phand_joint_calculations import JointCalculations
 from phand_calibration.phand_sensor_calibration import PhandSensorCalibrationValue
 from phand_control.wrist_control.wristCtrl_wrapper import WristCtrl
+from phand_control.finger_control.fingerCtrl_wrapper import FingerCtrl
 
 DEFAULT_MAX_FINGER_PRESSURE = 600000.0
 
@@ -62,7 +63,9 @@ class PHand(PhandUdpDriver):
     valve_data_exhaust = [0.0] * 12
     pressure_data = [100000.0] * 12
     wrist_positions = [20.0] * 2
-    finger_positions = [0.0] * 9
+    finger_positions = [0.0] * 7
+    drvs_position = 0
+    index_side_position = 0
 
     def __init__(self):
 
@@ -89,7 +92,8 @@ class PHand(PhandUdpDriver):
         self.messages["BionicFlexMessage"].register_cb(self.flex_cb)
 
         # Initialize Controllers
-        self.ctrl = WristCtrl()
+        self.wristCtrl = WristCtrl()
+        self.fingerCtrl = FingerCtrl()
 
         self.run_in_thread()
 
@@ -156,7 +160,30 @@ class PHand(PhandUdpDriver):
             logging.warning("phand_finger_control_update requires fringer or position control mode to be active")
             return
 
-        logging.info("Finger controller is not implemented.")
+        # Take the current cylinder values
+        fingerFlexPositions = self.messages["BionicFlexMessage"].values
+        fingerSidePositions = self.messages["BionicCylinderSensorMessage"].values
+
+        # topfingersensors = fingerFlexPositions[5-9]
+        # botFingerSensors = fingerFlexPositions[0-4]
+        # desFingerPositions = [7]
+        # actPosIndexCyl = fingerSidePositions[0]
+        # actPosDrvs = fingerFlexPositions[10]
+        # desPosIndexCyl = 0
+        # desPosDrvs = 0
+        # Update the pressures for the cylinders
+        fingerPressures = self.fingerCtrl.fingerUpdate(fingerFlexPositions[5:10],
+                                                       fingerFlexPositions[0:5],
+                                                       self.finger_positions,
+                                                       fingerSidePositions[0],
+                                                       fingerFlexPositions[0], 
+                                                       self.index_side_position, 
+                                                       self.drvs_position)
+        
+        # Add the new pressures to the pressure data
+        #self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = wristPressures[2]
+        #self.pressure_data[PHAND_FINGER_INDEX.WristLeft] = wristPressures[0] 
+        #self.pressure_data[PHAND_FINGER_INDEX.WristRight] = wristPressures[1]
 
     def phand_wrist_control_update(self):
         """
@@ -174,8 +201,8 @@ class PHand(PhandUdpDriver):
         wrist_pos_current = self.messages["BionicCylinderSensorMessage"].values
 
         # Update the pressures for the cylinders
-        wristPressures = self.ctrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], 
-                                        self.wrist_positions[0], self.wrist_positions[1])
+        wristPressures = self.wristCtrl.wristUpdate(wrist_pos_current[1], wrist_pos_current[2], 
+                                                    self.wrist_positions[0], self.wrist_positions[1])
         
         # Add the new pressures to the pressure data
         self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = wristPressures[2]
@@ -715,7 +742,9 @@ class PHand(PhandUdpDriver):
             logging.warning("Too less position values, 9 expected %d received", (len(data)))
             return False
 
-        self.finger_positions = data
+        self.finger_positions = data[0:8]
+        self.index_side_position = data[8]
+        self.drvs_position = data[9]
         return True   
 
     def set_pressure_data(self, data):
