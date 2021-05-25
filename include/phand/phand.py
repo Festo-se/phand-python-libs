@@ -76,6 +76,7 @@ class PHand(PhandUdpDriver):
         logging.info("Starting hand v1.4")
 
         self.yaml = YAML()
+        self.yaml.default_flow_style = None
         self.calibration_data = {}
         self.config_file_path = os.path.dirname(os.path.abspath(__file__)) + '/../phand_calibration/configs/hand_calibrations.yaml'
 
@@ -117,20 +118,22 @@ class PHand(PhandUdpDriver):
             self.generate_hand_state()
 
             if len(str(self.hand_id)) > 1 and not self.is_calibrated:
-                self.load_calibration_data()
-                logging.error(self.calibration_data)
+                self.load_calibration_data()                                
 
             if self.com_state != PHAND_STATE.ONLINE:
                 continue 
             
             # When the wrist position control is active
             if self.ctrl_mode == PHAND_CONTROL_MODES.WRIST_CTRL:
+                self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = 400000.0
                 self.phand_wrist_control_update()                            
             # When only the finger control is active
             elif self.ctrl_mode == PHAND_CONTROL_MODES.FINGER_CTRL:
+                self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = 400000.0
                 self.phand_finger_control_update()
             # All position controllers are called                
             elif self.ctrl_mode == PHAND_CONTROL_MODES.POSITION_CTRL:
+                self.pressure_data[PHAND_FINGER_INDEX.CounterPressure] = 400000.0
                 self.phand_finger_control_update()
                 self.phand_wrist_control_update()            
             
@@ -168,18 +171,22 @@ class PHand(PhandUdpDriver):
                                                        self.messages["BionicFlexMessage"].drvs_potti, 
                                                        self.index_side_position, 
                                                        self.drvs_position)
-
-        # Add the new pressures to the pressure data
-        self.pressure_data[PHAND_FINGER_INDEX.Pinky] = fingerPressures[0][6]
-        self.pressure_data[PHAND_FINGER_INDEX.Ring] = fingerPressures[0][5]
-        self.pressure_data[PHAND_FINGER_INDEX.Middle] = fingerPressures[0][4]
-        self.pressure_data[PHAND_FINGER_INDEX.IndexLower] = fingerPressures[0][2]
-        self.pressure_data[PHAND_FINGER_INDEX.IndexUpper] = fingerPressures[0][3]
-        self.pressure_data[PHAND_FINGER_INDEX.ThumbLower] = fingerPressures[0][0]
-        self.pressure_data[PHAND_FINGER_INDEX.ThumbUpper] = fingerPressures[0][1]
-        self.pressure_data[PHAND_FINGER_INDEX.IndexSide] = fingerPressures[1] 
-        self.pressure_data[PHAND_FINGER_INDEX.ThumbSide] = fingerPressures[2]
-
+        
+        try:        
+            # Add the new pressures to the pressure data
+            self.pressure_data[PHAND_FINGER_INDEX.Pinky] = fingerPressures[0][6]
+            self.pressure_data[PHAND_FINGER_INDEX.Ring] = fingerPressures[0][5]
+            self.pressure_data[PHAND_FINGER_INDEX.Middle] = fingerPressures[0][4]
+            self.pressure_data[PHAND_FINGER_INDEX.IndexLower] = fingerPressures[0][2]
+            self.pressure_data[PHAND_FINGER_INDEX.IndexUpper] = fingerPressures[0][3]
+            self.pressure_data[PHAND_FINGER_INDEX.ThumbLower] = fingerPressures[0][0]
+            self.pressure_data[PHAND_FINGER_INDEX.ThumbUpper] = fingerPressures[0][1]
+            self.pressure_data[PHAND_FINGER_INDEX.IndexSide] = fingerPressures[1] 
+            self.pressure_data[PHAND_FINGER_INDEX.ThumbSide] = fingerPressures[2]
+        except Exception as e:            
+            logging.error(f"Error with message: {e}")
+            pass
+        
     def phand_wrist_control_update(self):
         """
         Control the phand wrist.         
@@ -267,27 +274,33 @@ class PHand(PhandUdpDriver):
         with open(self.config_file_path, 'w') as yaml_file:
             self.yaml.dump(self.calibration_data, yaml_file)
 
-    def set_calibration(self, sensor_id, calibration_values: List[PhandSensorCalibrationValue]):
+    def set_calibration(self, calib_data_array):
 
-        # check if the hand exist if not add to calibration data
+        # If the calibration file is empty
+        if self.calibration_data == None:
+            logging.error("No calibration data found")
+            self.calibration_data[self.hand_id] = {}
+            
+        # Check if the hand exist if not add to calibration data        
         if self.hand_id not in self.calibration_data:
             logging.error("No calibration data found for hand id: %s" % self.hand_id)
             self.calibration_data[self.hand_id] = {}
-
-        # Check if sensor exist else add
-        if sensor_id not in self.calibration_data[self.hand_id]:
-            self.calibration_data[self.hand_id][sensor_id]={}
+        
+        for calib_data in calib_data_array:
+            # Check if sensor exist else add
+            if calib_data.value_id not in self.calibration_data[self.hand_id]:
+                self.calibration_data[self.hand_id][calib_data.value_id]=[]
 
         # Check if values exist else add them
-        for calib_val in calibration_values:
+        for calib_val in calib_data_array:
+            if calib_val.value_id not in self.calibration_data[self.hand_id]:
+                self.calibration_data[self.hand_id][calib_val.value_id] = {}
 
-            if calib_val.value_id not in self.calibration_data[self.hand_id][sensor_id]:
-                self.calibration_data[self.hand_id][sensor_id][calib_val.value_id] = {}
-
-            self.calibration_data[self.hand_id][sensor_id][calib_val.value_id] = calib_val.value
+            self.calibration_data[self.hand_id][calib_val.value_id] = calib_val.value
 
         # Save to disk
         self.save_calibration()
+        self.load_calibration_data()
 
         return True
 
@@ -296,6 +309,10 @@ class PHand(PhandUdpDriver):
         Returns calibration data for the current hand
         :return:
         """
+
+        if self.calibration_data == None:
+            return {}
+
         if self.hand_id in self.calibration_data:
             return self.calibration_data[self.hand_id]
         else:
@@ -309,14 +326,13 @@ class PHand(PhandUdpDriver):
         logging.error("Try to load calib data for: %s from %s"%(self.hand_id, self.config_file_path))
 
         data = {}
+        if not os.path.exists(self.config_file_path):
+            open(self.config_file_path, "w").close
+
         with open(self.config_file_path) as yaml_file:
             data = self.yaml.load(yaml_file)
-
-        stream = StringIO()
-        self.yaml.dump(self.calibration_data, stream)
-        logging.info(stream.getvalue())
-
-        return data
+        
+        self.calibration_data = data
 
     def load_calibration_data(self):
         """
@@ -330,9 +346,25 @@ class PHand(PhandUdpDriver):
         if self.hand_id == 0 or self.is_calibrated:
             return False
 
-        self.calibration_data = self.get_calibration_data()
-
+        self.get_calibration_data()
         self.is_calibrated = True
+        
+        if not self.hand_id in self.calibration_data:
+            logging.info(f"No calibration data found for this hand")
+            return
+
+        hand_calib_data = self.calibration_data[self.hand_id]
+        wrist_values = hand_calib_data['wrist']
+        drvs_values = hand_calib_data['drvs']
+        index_values = hand_calib_data['index']
+        bot_sensors_min = hand_calib_data['bot_sensors_min']
+        bot_sensors_max = hand_calib_data['bot_sensors_max']
+        top_sensors_min = hand_calib_data['top_sensors_min']
+        top_sensors_max = hand_calib_data['top_sensors_max']
+
+        logging.info("Set the wrist and finger calibration values.")
+        self.wristCtrl.setCalibration(wrist_values[0], wrist_values[1])
+        self.fingerCtrl.setCalibration(top_sensors_min, bot_sensors_min, top_sensors_max, bot_sensors_max, index_values[0], index_values[1], drvs_values[0], drvs_values[1])
 
     def set_ctrl_mode(self, ctrl_mode):
 
@@ -733,11 +765,12 @@ class PHand(PhandUdpDriver):
         if len(data) != 9:
             logging.warning("Too less position values, 9 expected %d received", (len(data)))
             return False
-        
+                
         self.finger_positions = data[0:7]
-        self.index_side_position = data[7]
-        self.drvs_position = data[8]
-        return True   
+        self.drvs_position = data[7]
+        self.index_side_position = data[8]
+                
+        return True
 
     def set_pressure_data(self, data):
         """
@@ -756,6 +789,12 @@ class PHand(PhandUdpDriver):
                     continue
                 
                 self.pressure_data[x] = data[x]
+                
+        elif self.ctrl_mode == PHAND_CONTROL_MODES.FINGER_CTRL:
+            for x in range(0, 12):
+                if x == PHAND_FINGER_INDEX.WristLeft or \
+                   x == PHAND_FINGER_INDEX.WristRight:
+                    self.pressure_data[x] = data[x]
 
         elif self.ctrl_mode == PHAND_CONTROL_MODES.PRESSURE_CTRL:
             self.pressure_data = data
