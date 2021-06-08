@@ -38,8 +38,8 @@ class WristCtrl:
         """
         
         wristCtrl_tuning = WristControlTuningStruct.in_dll(self.wristCtrl_lib, 'wristCtrl_tuning')        
-        wristCtrl_tuning.offset_cyl2 = leftOffset
-        wristCtrl_tuning.offset_cyl3 = rightOffset        
+        wristCtrl_tuning.offset_cyl2 = int(leftOffset)
+        wristCtrl_tuning.offset_cyl3 = int(rightOffset)
 
     def wristUpdate(self, actPosLeft, actPosRight, desPosLeft, desPosRight):
         ''' Call the wristCtrl function with specified data types provided by ctypes'''
@@ -51,10 +51,9 @@ class WristCtrl:
         p2d_cyl2  	= c_float(0)			# desired pressure at port 2 of cylinder 2
         p2d_cyl3 	= c_float(0)			# desired pressure at port 2 of cylinder 3
         p4d 		= c_float(0)			# desired pressure at port 4 of cylinders
-        
+                
         self.wristCtrl_lib.wristCtrl(byref(ActPos_cyl2), byref(ActPos_cyl3), byref(desPos_cyl2), byref(desPos_cyl3), byref(enable), byref(p2d_cyl2), byref(p2d_cyl3), byref(p4d))
         return [p2d_cyl2.value, p2d_cyl3.value, p4d.value]
-
 
 if __name__ == '__main__':    
     print("Test the WristControl wrapper")
