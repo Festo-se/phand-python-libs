@@ -4,10 +4,10 @@
  *** TargetLink subsystem : BionicHand_r/fingerCtrl
  *** Codefile             : udt_e.h
  ***
- *** Generation date: 2021-04-15 13:10:35
+ *** Generation date: 2021-06-08 10:57:06
  ***
- *** TargetLink version      : 5.0 from 02-Oct-2019
- *** Code generator version  : Build Id 5.0.0.24 from 2019-10-07 12:46:33
+ *** TargetLink version      : 5.1 from 28-Oct-2020
+ *** Code generator version  : Build Id 5.1.0.29 from 2020-10-22 12:32:14
 \**************************************************************************************************/
 
 #ifndef UDT_E_H
