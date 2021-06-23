@@ -323,7 +323,7 @@ class PHand(PhandUdpDriver):
         Loads calibration data from yaml file
         """
 
-        logging.error("Try to load calib data for: %s from %s"%(self.hand_id, self.config_file_path))
+        logging.debug("Try to load calib data for: %s from %s"%(self.hand_id, self.config_file_path))
 
         data = {}
         if not os.path.exists(self.config_file_path):
@@ -362,6 +362,7 @@ class PHand(PhandUdpDriver):
         top_sensors_min = hand_calib_data['top_sensors_min']
         top_sensors_max = hand_calib_data['top_sensors_max']
 
+        logging.debug(f"Wrist Left: {wrist_values[0]} Right: {wrist_values[1]}")
         logging.info("Set the wrist and finger calibration values.")
         self.wristCtrl.setCalibration(wrist_values[0], wrist_values[1])
         self.fingerCtrl.setCalibration(top_sensors_min, bot_sensors_min, top_sensors_max, bot_sensors_max, index_values[0], index_values[1], drvs_values[0], drvs_values[1])

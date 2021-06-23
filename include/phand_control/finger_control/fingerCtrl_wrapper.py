@@ -42,20 +42,22 @@ class FingerCtrl:
         except Exception as e:
             print(e)
 
+        self.fingerCtrl_tuning = FingerControlTuningStruct.in_dll(self.fingerCtrl_lib, 'fingerCtrl_tuning_a')
+
     def setCalibration(self, minTopFingers, minBotFingers, maxTopFingers, maxBotFingers, minCylinderIndex, maxCylinderIndex, minDrvs, maxDrvs):
         """
         Set the finger calibration values
         """
 
-        fingerCtrl_tuning = FingerControlTuningStruct.in_dll(self.fingerCtrl_lib, 'fingerCtrl_tuning_a')                
-        fingerCtrl_tuning.minTopFingerPos = (c_uint16 * 5)(int(minTopFingers[0]), int(minTopFingers[1]), int(minTopFingers[2]), int(minTopFingers[3]), int(minTopFingers[4]))
-        fingerCtrl_tuning.minBotFingerPos = (c_uint16 * 5)(int(minBotFingers[0]), int(minBotFingers[1]), int(minBotFingers[2]), int(minBotFingers[3]), int(minBotFingers[4]))
-        fingerCtrl_tuning.maxTopFingerPos = (c_uint16 * 5)(int(maxTopFingers[0]), int(maxTopFingers[1]), int(maxTopFingers[2]), int(maxTopFingers[3]), int(maxTopFingers[4]))
-        fingerCtrl_tuning.maxBotFingerPos = (c_uint16 * 5)(int(maxBotFingers[0]), int(maxBotFingers[1]), int(maxBotFingers[2]), int(maxBotFingers[3]), int(maxBotFingers[4]))
-        fingerCtrl_tuning.cyl1_minPos = int(minCylinderIndex)
-        fingerCtrl_tuning.cyl1_maxPos = int(maxCylinderIndex)
-        fingerCtrl_tuning.DRVS_minPos = int(minDrvs)
-        fingerCtrl_tuning.DRVS_maxPos = int(maxDrvs)
+        self.fingerCtrl_tuning = FingerControlTuningStruct.in_dll(self.fingerCtrl_lib, 'fingerCtrl_tuning_a')                
+        self.fingerCtrl_tuning.minTopFingerPos = (c_uint16 * 5)(int(minTopFingers[0]), int(minTopFingers[1]), int(minTopFingers[2]), int(minTopFingers[3]), int(minTopFingers[4]))
+        self.fingerCtrl_tuning.minBotFingerPos = (c_uint16 * 5)(int(minBotFingers[0]), int(minBotFingers[1]), int(minBotFingers[2]), int(minBotFingers[3]), int(minBotFingers[4]))
+        self.fingerCtrl_tuning.maxTopFingerPos = (c_uint16 * 5)(int(maxTopFingers[0]), int(maxTopFingers[1]), int(maxTopFingers[2]), int(maxTopFingers[3]), int(maxTopFingers[4]))
+        self.fingerCtrl_tuning.maxBotFingerPos = (c_uint16 * 5)(int(maxBotFingers[0]), int(maxBotFingers[1]), int(maxBotFingers[2]), int(maxBotFingers[3]), int(maxBotFingers[4]))
+        self.fingerCtrl_tuning.cyl1_minPos = int(minCylinderIndex)
+        self.fingerCtrl_tuning.cyl1_maxPos = int(maxCylinderIndex)
+        self.fingerCtrl_tuning.DRVS_minPos = int(minDrvs)
+        self.fingerCtrl_tuning.DRVS_maxPos = int(maxDrvs)
 
     def fingerUpdate(self, topFingerSensors, botFingerSensors, desFingerPositions, actPosIndexCyl, actPosDrvs, desPosIndexCyl, desPosDrvs):
         ''' Call the fingerCtrl function with specified data types provided by ctypes'''
@@ -78,8 +80,8 @@ class FingerCtrl:
         Se1_pFinger_des      = (c_float * 7)(0)                      # desired pressure at port 2 of cylinder 3        
         p2d_cyl1             = c_float(0)                            # desired pressure at port 2 of cylinder 1 (index)
         p2d_DRVS             = c_float(0)                            # desired pressure at port 2 of DRVS
-        fingerCtrl_tuning    = FingerControlTuningStruct.in_dll(self.fingerCtrl_lib, 'fingerCtrl_tuning_a')  
-        
+        fingerCtrl_tuning    = self.fingerCtrl_tuning
+
         self.fingerCtrl_lib.fingerCtrl(byref(Se1_TopFingerSensors), byref(Se1_BotFingerSensors), byref(Se1_desFingerPos), byref(Se1_reset), byref(ActPos_cyl1), byref(ActPos_DRVS), byref(desPos_cyl1), byref(desPos_DRVS), byref(enable), byref(Se1_pFinger_des), byref(p2d_cyl1), byref(p2d_DRVS), byref(fingerCtrl_tuning))
         return [Se1_pFinger_des, p2d_cyl1.value, p2d_DRVS.value]
 
